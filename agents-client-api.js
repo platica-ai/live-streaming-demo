@@ -514,5 +514,5 @@ agentsButton.onclick = async () => {
 };
 
 // Paste Your Created Agent and Chat IDs Here:
-agentId = '';
+agentId = import.meta.env.agt_abc123;
 chatId = '';
