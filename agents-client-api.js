@@ -1,6 +1,6 @@
 'use strict';
 const DID_API = {
-  key: import.meta.env.DID_API_KEY,
+  key: '__DID_API_KEY__',
   url: 'https://api.d-id.com',
   service: 'talks',
 };
