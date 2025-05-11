@@ -1,6 +1,6 @@
 'use strict';
 const DID_API = {
-  key: '__DID_API_KEY__',
+  key: '__DID_API_KEY__', // placeholder to be replaced during build
   url: 'https://api.d-id.com',
   service: 'talks',
 };
