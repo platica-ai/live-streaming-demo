@@ -499,5 +499,5 @@ async function agentsAPIworkflow() {
 }
 
 // Paste Your Created Agent and Chat IDs Here:
-agentId = import.meta.env.agt_abc123;
+agentId = import.meta.env.DID_STREAMING_AGENT_ID;
 chatId = '';
