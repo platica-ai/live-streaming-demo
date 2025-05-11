@@ -1,11 +1,11 @@
 'use strict';
 const DID_API = {
-  key: '__DID_API_KEY__', // placeholder to be replaced during build
+  key: '__DID_API_KEY__', // will be replaced at build time
   url: 'https://api.d-id.com',
   service: 'talks',
 };
 
-if (!DID_API.key || DID_API.key === '🤫') {
+if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
   alert('Missing API key. Please set DID_API_KEY in Vercel Environment Variables.');
 }
 
