@@ -498,21 +498,6 @@ async function agentsAPIworkflow() {
   return { agentId: agentId, chatId: chatId };
 }
 
-const agentsButton = document.getElementById('agents-button');
-agentsButton.onclick = async () => {
-  try {
-    const agentsIds = ({} = await agentsAPIworkflow());
-    console.log(agentsIds);
-    agentId = agentsIds.agentId;
-    chatId = agentsIds.chatId;
-    return;
-  } catch (err) {
-    agentIdLabel.innerHTML = `<span style='color:red'>Failed</span>`;
-    chatIdLabel.innerHTML = `<span style='color:red'>Failed</span>`;
-    throw new Error(err);
-  }
-};
-
 // Paste Your Created Agent and Chat IDs Here:
 agentId = import.meta.env.agt_abc123;
 chatId = '';
