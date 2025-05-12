@@ -38,8 +38,10 @@ const streamEventLabel = document.getElementById('stream-event-label');
 
 const presenterInputByService = {
   talks: {
-    source_url: 'https://create-images-results.d-id.com/DefaultPresenters/Emma_f/v1_image.jpeg',
+    source_url: 'https://create-images-results.d-id.com/google-oauth2%7C108852201479814383103/upl_PjzS-jaIjHI5smIQ-tpHA/image.png',
   },
+};
+
   clips: {
     presenter_id: 'v2_public_alex@qcvo4gupoy',
     driver_id: 'e3nbserss8',
@@ -359,8 +361,9 @@ function setStreamVideoElement(stream) {
 }
 
 function playIdleVideo() {
-  idleVideoElement.src = DID_API.service == 'clips' ? 'alex_v2_idle.mp4' : 'emma_idle.mp4';
+  idleVideoElement.src = 'https://agents-results.d-id.com/google-oauth2%7C108852201479814383103/agt_y18VKLhS/idle_1746979406456.mp4';
 }
+
 
 function stopAllStreams() {
   if (streamVideoElement.srcObject) {
