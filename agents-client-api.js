@@ -25,7 +25,7 @@ let lastBytesReceived;
 let agentId;
 let chatId;
 
-const videoElement = document.getElementById('video-element');
+const videoElement = document.getElementById('stream-video-element');
 videoElement.setAttribute('playsinline', '');
 const peerStatusLabel = document.getElementById('peer-status-label');
 const iceStatusLabel = document.getElementById('ice-status-label');
