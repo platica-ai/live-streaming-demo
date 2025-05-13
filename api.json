@@ -1,7 +1,5 @@
 {
-  "key": "🤫",
+  "key": "Z2FicmllbEBzY3BsYXRpY2EuY29t:9KbYJAi2G2dZh2eqc49weX",
   "url": "https://api.d-id.com",
-  "websocketUrl": "wss://ws-api.d-id.com",
-  "service": "clips",
-  "elevenlabsKey": ""
+  "service": "talks"
 }
