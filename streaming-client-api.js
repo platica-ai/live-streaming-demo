@@ -38,8 +38,8 @@ const streamEventLabel = document.getElementById('stream-event-label');
 
 const presenterInputByService = {
   talks: {
-    source_url: 'https://create-images-results.d-id.com/google-oauth2%7C108852201479814383103/upl_PjzS-jaIjHI5smIQ-tpHA/image.png',
-  },
+  source_url: '/luna_idle.mp4', // or the correct public image URL for Luna
+},
 };
 
 const connectButton = document.getElementById('connect-button');
