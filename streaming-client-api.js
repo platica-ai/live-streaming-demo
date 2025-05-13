@@ -42,12 +42,6 @@ const presenterInputByService = {
   },
 };
 
-  clips: {
-    presenter_id: 'v2_public_alex@qcvo4gupoy',
-    driver_id: 'e3nbserss8',
-  },
-};
-
 const connectButton = document.getElementById('connect-button');
 connectButton.onclick = async () => {
   if (peerConnection && peerConnection.connectionState === 'connected') {
