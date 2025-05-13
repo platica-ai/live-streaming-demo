@@ -361,7 +361,7 @@ function setStreamVideoElement(stream) {
 }
 
 function playIdleVideo() {
-  idleVideoElement.src = 'https://agents-results.d-id.com/google-oauth2%7C108852201479814383103/agt_y18VKLhS/idle_1746979406456.mp4';
+  idleVideoElement.src = 'luna_idle.mp4';
 }
 
 
