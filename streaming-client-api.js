@@ -361,7 +361,7 @@ function setStreamVideoElement(stream) {
 }
 
 function playIdleVideo() {
-  idleVideoElement.src = 'luna_idle.mp4';
+  idleVideoElement.src = '/luna_idle.mp4';
 }
 
 
