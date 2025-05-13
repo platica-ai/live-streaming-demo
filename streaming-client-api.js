@@ -422,3 +422,9 @@ async function fetchWithRetries(url, options, retries = 1) {
     }
   }
 }
+
+// Trigger idle video when page is fully loaded
+window.onload = () => {
+  playIdleVideo();
+};
+
