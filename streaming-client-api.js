@@ -1,6 +1,9 @@
 'use strict';
-const fetchJsonFile = await fetch('./api.json');
-const DID_API = await fetchJsonFile.json();
+const DID_API = {
+  key: 'Z2FicmllbEBzY3BsYXRpY2EuY29tOj9KbYJAi2G2dhZeqcw49ex',
+  url: 'https://api.d-id.com',
+  service: 'talks'
+};
 
 if (DID_API.key == '🤫') alert('Please put your api key inside ./api.json and restart..');
 
