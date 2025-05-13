@@ -362,8 +362,11 @@ function setStreamVideoElement(stream) {
 
 function playIdleVideo() {
   idleVideoElement.src = '/luna_idle.mp4';
+  idleVideoElement.muted = true;
+  idleVideoElement.play()
+    .then(() => console.log('Idle video playing'))
+    .catch((e) => console.error('Failed to play idle video', e));
 }
-
 
 function stopAllStreams() {
   if (streamVideoElement.srcObject) {
