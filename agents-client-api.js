@@ -214,18 +214,20 @@ function setVideoElement(stream) {
   }
 }
 function playIdleVideo() {
-  // Add Animation Class
-  videoElement.classList.toggle('animated');
+  const idleVideo = document.getElementById('idle-video-element');
+  idleVideo.classList.add('animated');
 
-  videoElement.srcObject = undefined;
-  videoElement.src = 'luna_idle.mp4';
-  videoElement.loop = true;
+  idleVideo.srcObject = undefined;
+  idleVideo.src = 'luna_idle.mp4';
+  idleVideo.loop = true;
+  idleVideo.muted = true;
+  idleVideo.play();
 
-  // Remove Animation Class after it's completed
   setTimeout(() => {
-    videoElement.classList.remove('animated');
+    idleVideo.classList.remove('animated');
   }, 1000);
 }
+
 function stopAllStreams() {
   if (videoElement.srcObject) {
     console.log('stopping video streams');
