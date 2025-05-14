@@ -201,6 +201,10 @@
       </div>
     </div>
 
-    <script type="module" src="./streaming-client-api.js"></script>
+      <script type="module">
+        import { startMicrophoneStream } from './microphone-stream.js';
+        import './agents-client-api.js';
+        startMicrophoneStream(); // This starts listening immediately
+      </script>
   </body>
 </html>
