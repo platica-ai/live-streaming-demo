@@ -152,21 +152,23 @@
         margin: 0 auto;
       }
 
-      video {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        /*border:1px solid;*/
-        border-radius: 50%;
-        background-color: #fff;
+     video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-color: #fff;
+  object-fit: cover;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 
-        object-fit: cover;
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center;
-        background-image: url("alex_v2_idle_image.png");
-      }
+#idle-video-element {
+  background-image: url("luna_idle.png"); /* This is the still image for Luna */
+}
+
     </style>
   </head>
 
