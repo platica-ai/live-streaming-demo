@@ -214,19 +214,23 @@ function setVideoElement(stream) {
   }
 }
 function playIdleVideo() {
-   const idleVideo = document.getElementById('idle-video-element');
-   idleVideo.src = '/luna_idle.mp4';
+  const idleVideo = document.getElementById('idle-video-element');
+  const streamVideo = document.getElementById('stream-video-element');
+
+  idleVideo.style.opacity = 1;
+  streamVideo.style.opacity = 0;
 
   idleVideo.srcObject = undefined;
-  idleVideo.src = 'luna_idle.mp4';
+  idleVideo.src = '/luna_idle.mp4'; // ✅ Correct file path
   idleVideo.loop = true;
   idleVideo.muted = true;
-  idleVideo.play();
 
-  setTimeout(() => {
-    idleVideo.classList.remove('animated');
-  }, 1000);
+  idleVideo
+    .play()
+    .then(() => console.log('Idle video playing.'))
+    .catch((e) => console.error('Failed to play idle video:', e));
 }
+
 
 function stopAllStreams() {
   if (videoElement.srcObject) {
