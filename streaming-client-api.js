@@ -358,12 +358,23 @@ function setStreamVideoElement(stream) {
 }
 
 function playIdleVideo() {
-  idleVideoElement.src = '/luna_idle.mp4';
-  idleVideoElement.muted = true;
-  idleVideoElement.play()
-    .then(() => console.log('Idle video playing'))
-    .catch((e) => console.error('Failed to play idle video', e));
+  const idleVideo = document.getElementById('idle-video-element');
+  const streamVideo = document.getElementById('stream-video-element');
+
+  idleVideo.style.opacity = 1;
+  streamVideo.style.opacity = 0;
+
+  idleVideo.srcObject = undefined;
+  idleVideo.src = '/luna_idle.mp4'; // ✅ Correct file path
+  idleVideo.loop = true;
+  idleVideo.muted = true;
+
+  idleVideo
+    .play()
+    .then(() => console.log('Idle video playing.'))
+    .catch((e) => console.error('Failed to play idle video:', e));
 }
+
 
 function stopAllStreams() {
   if (streamVideoElement.srcObject) {
