@@ -214,8 +214,8 @@ function setVideoElement(stream) {
   }
 }
 function playIdleVideo() {
-  const idleVideo = document.getElementById('idle-video-element');
-  idleVideo.classList.add('animated');
+   const idleVideo = document.getElementById('idle-video-element');
+   idleVideo.src = '/luna_idle.mp4';
 
   idleVideo.srcObject = undefined;
   idleVideo.src = 'luna_idle.mp4';
