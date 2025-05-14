@@ -39,7 +39,7 @@ const streamEventLabel = document.getElementById('stream-event-label');
 
 const presenterInputByService = {
   talks: {
-    source_url: 'https://create-images-results.d-id.com/DefaultPresenters/Emma_f/v1_image.jpeg',
+    source_url: '/luna_idle.mp4',
   },
   clips: {
     presenter_id: 'v2_public_alex@qcvo4gupoy',
