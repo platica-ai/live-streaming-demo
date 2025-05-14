@@ -8,6 +8,8 @@ import formidable from 'formidable';
 import fs from 'fs';
 import { Readable } from 'stream';
 
+let transcriptLog = []; // in-memory transcript
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
@@ -30,7 +32,17 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    res.status(200).json(data);
+
+    // Add transcript entry to memory
+    transcriptLog.push({
+      text: data.text,
+      timestamp: new Date().toISOString()
+    });
+
+    res.status(200).json({
+      text: data.text,
+      transcriptLog
+    });
   });
 }
 
@@ -41,3 +53,6 @@ function createFormData(fileStream, filename) {
   form.append('model', 'whisper-1');
   return form;
 }
+
+export { transcriptLog }; // export so it can be reused
+
