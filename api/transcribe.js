@@ -27,7 +27,8 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Form parse error' });
     }
 
-    const file = files.audio;
+    const fileArray = files.audio;
+    const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
 
     if (!file || !file.filepath) {
       return res.status(400).json({ error: 'Invalid file object, no path found.' });
