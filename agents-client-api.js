@@ -15,11 +15,16 @@ async function waitForKeys() {
   }
 }
 
+window.onload = async () => {
+  try {
+    await waitForKeys();               // 🔑 Wait until keys are loaded
+    playIdleVideo();                   // ▶️ Then run your startup logic
+    console.log("DID_API.key loaded:", DID_API.key);
+  } catch (err) {
+    alert(err.message);                // ⚠️ Show meaningful error
+  }
+};
 
-
-if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
-  alert('Missing API key. Please set DID_API_KEY in Vercel Environment Variables.');
-}
 
 const RTCPeerConnection = (
   window.RTCPeerConnection ||
