@@ -18,6 +18,10 @@ export default async function handler(req, res) {
   const form = new IncomingForm({ keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
+    form.on('file', (field, file) => {
+  console.log('📥 Got file:', field, file.originalFilename, file.mimetype, file.filepath);
+});
+    console.log('🎤 Files received:', files);
     if (err) {
       console.error('❌ Form parse error:', err);
       return res.status(500).json({ error: 'Form parse error' });
