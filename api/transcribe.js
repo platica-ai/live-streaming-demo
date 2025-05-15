@@ -2,10 +2,9 @@ const formidable = require('formidable');
 const fs = require('fs');
 const FormData = require('form-data');
 
-let transcriptLog = []; // in-memory log
+let transcriptLog = []; // in-memory transcript
 
-// ✅ Main function
-const handler = async (req, res) => {
+module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
@@ -15,7 +14,7 @@ const handler = async (req, res) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('❌ Form parse error:', err);
-      return res.status(500).json({ error: 'Form parse error' });
+      return res.status(500).json({ error: 'Form parse error', details: err.message });
     }
 
     if (!files || !files.audio) {
@@ -31,7 +30,7 @@ const handler = async (req, res) => {
       formData.append('file', fileStream, file.originalFilename || 'audio.webm');
       formData.append('model', 'whisper-1');
 
-      console.log('📦 Sending to OpenAI with headers:', formData.getHeaders());
+      console.log('📡 Sending audio to OpenAI...');
 
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
@@ -42,8 +41,8 @@ const handler = async (req, res) => {
         body: formData
       });
 
-      const text = await response.text(); // safer for debugging
-      console.log('📩 OpenAI response raw:', text);
+      const text = await response.text();
+      console.log('📩 Raw response from OpenAI:', text);
 
       if (!response.ok) {
         return res.status(500).json({ error: 'OpenAI error', details: text });
@@ -51,15 +50,9 @@ const handler = async (req, res) => {
 
       const data = JSON.parse(text);
 
-      transcriptLog.push({
-        text: data.text,
-        timestamp: new Date().toISOString()
-      });
+      transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
 
-      return res.status(200).json({
-        text: data.text,
-        transcriptLog
-      });
+      return res.status(200).json({ text: data.text, transcriptLog });
 
     } catch (e) {
       console.error('❌ Unexpected error:', e);
@@ -67,6 +60,3 @@ const handler = async (req, res) => {
     }
   });
 };
-
-// ✅ Export for Vercel
-module.exports = handler;
