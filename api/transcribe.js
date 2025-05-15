@@ -2,7 +2,7 @@ const formidable = require('formidable');
 const fs = require('fs');
 const FormData = require('form-data');
 
-let transcriptLog = []; // in-memory transcript
+let transcriptLog = [];
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -17,20 +17,27 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: 'Form parse error', details: err.message });
     }
 
-    if (!files || !files.audio) {
-      console.error('❌ No audio file received.');
-      return res.status(400).json({ error: 'No audio file received' });
-    }
+    console.log('🧾 Fields:', fields);
+    console.log('📁 Files:', files);
 
     const file = files.audio;
-    const fileStream = fs.createReadStream(file.filepath);
+    if (!file) {
+      console.error('❌ No "audio" file received.');
+      return res.status(400).json({ error: 'No "audio" file received' });
+    }
+
+    const filepath = file.filepath || file.path;
+    if (!filepath) {
+      console.error('❌ No valid path found on uploaded file object.');
+      return res.status(500).json({ error: 'Invalid file object, no path found.' });
+    }
+
+    const fileStream = fs.createReadStream(filepath);
 
     try {
       const formData = new FormData();
       formData.append('file', fileStream, file.originalFilename || 'audio.webm');
       formData.append('model', 'whisper-1');
-
-      console.log('📡 Sending audio to OpenAI...');
 
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
@@ -42,18 +49,16 @@ module.exports = async (req, res) => {
       });
 
       const text = await response.text();
-      console.log('📩 Raw response from OpenAI:', text);
+      console.log('📩 OpenAI response:', text);
 
       if (!response.ok) {
         return res.status(500).json({ error: 'OpenAI error', details: text });
       }
 
       const data = JSON.parse(text);
-
       transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
 
       return res.status(200).json({ text: data.text, transcriptLog });
-
     } catch (e) {
       console.error('❌ Unexpected error:', e);
       return res.status(500).json({ error: 'Unexpected error', message: e.message });
