@@ -5,11 +5,16 @@ let DID_API = {
   service: 'talks',
 };
 
-(async function loadKeys() {
+async function waitForKeys() {
   const res = await fetch('/api/env');
   const data = await res.json();
   DID_API.key = data.DID_API_KEY;
-})();
+
+  if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
+    throw new Error('Missing or invalid DID_API_KEY');
+  }
+}
+
 
 
 if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
