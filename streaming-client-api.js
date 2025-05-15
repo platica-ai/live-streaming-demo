@@ -451,8 +451,22 @@ async function fetchWithRetries(url, options, retries = 1) {
   }
 }
 
-// Trigger idle video when page is fully loaded
-window.onload = () => {
-  playIdleVideo();
-};
+async function waitForKeys() {
+  const res = await fetch('/api/env');
+  const data = await res.json();
+  DID_API.key = data.DID_API_KEY;
 
+  if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
+    throw new Error('Missing or invalid DID_API_KEY');
+  }
+}
+
+window.onload = async () => {
+  try {
+    await waitForKeys();
+    playIdleVideo();
+    console.log("DID_API.key loaded:", DID_API.key);
+  } catch (err) {
+    alert(err.message);
+  }
+};
