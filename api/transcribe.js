@@ -23,15 +23,22 @@ export default async function handler(req, res) {
     const file = files.audio;
     const fileStream = fs.createReadStream(file.filepath);
 
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: createFormData(fileStream, 'audio.webm')
-    });
+const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+  },
+  body: createFormData(fileStream, 'audio.webm')
+});
 
-    const data = await response.json();
+if (!response.ok) {
+  const text = await response.text(); // Get readable error
+  console.error('Transcription API error:', text);
+  return res.status(500).json({ error: 'Transcription API error', details: text });
+}
+
+const data = await response.json();
+
 
     // Add transcript entry to memory
     transcriptLog.push({
