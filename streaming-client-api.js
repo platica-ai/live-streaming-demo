@@ -368,6 +368,8 @@ function playIdleVideo() {
   idleVideo.src = '/luna_idle.mp4'; // ✅ Correct file path
   idleVideo.loop = true;
   idleVideo.muted = true;
+  idleVideo.autoplay = true;
+  idleVideo.playsInline = true;
 
   idleVideo
     .play()
