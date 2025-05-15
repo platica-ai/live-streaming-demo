@@ -1,9 +1,16 @@
 'use strict';
-const DID_API = {
-  key: '__DID_API_KEY__', // will be replaced at build time
+let DID_API = {
+  key: null,
   url: 'https://api.d-id.com',
   service: 'talks',
 };
+
+(async function loadKeys() {
+  const res = await fetch('/api/env');
+  const data = await res.json();
+  DID_API.key = data.DID_API_KEY;
+})();
+
 
 if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
   alert('Missing API key. Please set DID_API_KEY in Vercel Environment Variables.');
