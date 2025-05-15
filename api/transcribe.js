@@ -1,5 +1,7 @@
-import formidable from 'formidable';
+// /api/transcribe.js
+
 import { Readable } from 'stream';
+import busboy from 'busboy';
 import FormData from 'form-data';
 
 export const config = {
@@ -8,59 +10,66 @@ export const config = {
   },
 };
 
-let transcriptLog = [];
+const transcriptLog = [];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
 
-  const form = new formidable.IncomingForm({ keepExtensions: true });
+  try {
+    const bb = busboy({ headers: req.headers });
 
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      console.error('❌ Form parse error:', err);
-      return res.status(500).json({ error: 'Form parse error' });
-    }
+    let audioBuffer = null;
+    let filename = 'audio.webm';
 
-    const file = files.audio;
-    if (!file || !file[0] || !file[0].originalFilename || !file[0]._writeStream || !file[0]._writeStream._buffer) {
-      console.error('❌ Invalid file object:', file);
-      return res.status(400).json({ error: 'Invalid file object, no buffer found.' });
-    }
+    bb.on('file', (name, file, info) => {
+      filename = info.filename || filename;
 
-    const buffer = file[0]._writeStream._buffer;
-    const filename = file[0].originalFilename;
+      const chunks = [];
+      file.on('data', chunk => chunks.push(chunk));
+      file.on('end', () => {
+        audioBuffer = Buffer.concat(chunks);
+      });
+    });
 
-    try {
-      const formData = new FormData();
-      formData.append('file', Readable.from(buffer), filename);
-      formData.append('model', 'whisper-1');
+    bb.on('finish', async () => {
+      if (!audioBuffer) {
+        return res.status(400).json({ error: 'No audio file received' });
+      }
 
-      const openaiRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      const form = new FormData();
+      form.append('file', audioBuffer, {
+        filename,
+        contentType: 'audio/webm',
+      });
+      form.append('model', 'whisper-1');
+
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          ...formData.getHeaders()
+          ...form.getHeaders(),
         },
-        body: formData
+        body: form,
       });
 
-      const text = await openaiRes.text(); // easier to debug
-      console.log('📩 OpenAI response raw:', text);
+      const rawText = await response.text();
+      console.log('📝 OpenAI response:', rawText);
 
-      if (!openaiRes.ok) {
-        return res.status(500).json({ error: 'OpenAI error', details: text });
+      if (!response.ok) {
+        return res.status(500).json({ error: 'OpenAI error', details: rawText });
       }
 
-      const data = JSON.parse(text);
+      const data = JSON.parse(rawText);
       transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
 
       return res.status(200).json({ text: data.text, transcriptLog });
+    });
 
-    } catch (e) {
-      console.error('❌ Unexpected error:', e);
-      return res.status(500).json({ error: 'Unexpected error', message: e.message });
-    }
-  });
+    req.pipe(bb);
+  } catch (err) {
+    console.error('❌ Transcription error:', err);
+    return res.status(500).json({ error: 'Unexpected error', message: err.message });
+  }
 }
