@@ -36,12 +36,10 @@ export default async function handler(req, res) {
 
     const fileStream = fs.createReadStream(file.filepath);
 
-    const formData = new FormData();
-    formData.append('file', fileStream, {
-      filename: file.originalFilename || 'audio.webm',
-      contentType: file.mimetype || 'audio/webm'
-    });
-    formData.append('model', 'whisper-1');
+       const formData = new FormData();
+       formData.append('file', fileStream, 'audio.webm');
+       formData.append('model', 'whisper-1');
+
 
     try {
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
