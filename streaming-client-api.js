@@ -15,8 +15,15 @@ async function waitForKeys() {
   }
 }
 
-
-if (DID_API.key == '🤫') alert('Please put your api key inside ./api.json and restart..');
+window.onload = async () => {
+  try {
+    await waitForKeys();               // 🔑 Wait until keys are loaded
+    playIdleVideo();                   // ▶️ Then run your startup logic
+    console.log("DID_API.key loaded:", DID_API.key);
+  } catch (err) {
+    alert(err.message);                // ⚠️ Show meaningful error
+  }
+};
 
 const RTCPeerConnection = (
   window.RTCPeerConnection ||
