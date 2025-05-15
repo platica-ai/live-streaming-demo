@@ -34,11 +34,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid file object, no path found.' });
     }
 
-    const fileStream = fs.createReadStream(file.filepath);
+   const fileStream = fs.createReadStream(file.filepath);
 
-       const formData = new FormData();
-       formData.append('file', fileStream, 'audio.webm');
-       formData.append('model', 'whisper-1');
+const formData = new FormData();
+formData.append('file', fileStream, {
+  filename: file.originalFilename || 'audio.webm',
+  contentType: 'audio/webm', // ✅ Explicit MIME type
+});
+formData.append('model', 'whisper-1');
+
 
 
     try {
