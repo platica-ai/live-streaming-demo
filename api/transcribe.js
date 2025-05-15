@@ -1,17 +1,17 @@
-export const config = {
+const fs = require('fs');
+const { IncomingForm } = require('formidable');
+const FormData = require('form-data');
+const axios = require('axios');
+
+exports.config = {
   api: {
     bodyParser: false,
   },
 };
 
-import { IncomingForm } from 'formidable';
-import fs from 'fs';
-import FormData from 'form-data';
-import axios from 'axios'; // ✅ Using axios for multipart reliability on Vercel
-
 let transcriptLog = [];
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
@@ -34,4 +34,42 @@ export default async function handler(req, res) {
     const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
 
     if (!file || !file.filepath) {
-      return res.status(400).json({ error: 'Inva
+      return res.status(400).json({ error: 'Invalid file object, no path found.' });
+    }
+
+    const fileStream = fs.createReadStream(file.filepath);
+
+    const formData = new FormData();
+    formData.append('file', fileStream, {
+      filename: file.originalFilename || 'audio.webm',
+      contentType: 'audio/webm',
+    });
+    formData.append('model', 'whisper-1');
+
+    try {
+      const response = await axios.post(
+        'https://api.openai.com/v1/audio/transcriptions',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            ...formData.getHeaders(),
+          },
+        }
+      );
+
+      const data = response.data;
+      console.log('🔵 OpenAI response:', data);
+
+      transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
+      return res.status(200).json({ text: data.text, transcriptLog });
+
+    } catch (e) {
+      console.error('❌ OpenAI error:', e.response?.data || e.message);
+      return res.status(500).json({
+        error: 'OpenAI error',
+        details: e.response?.data || e.message,
+      });
+    }
+  });
+};
