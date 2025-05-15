@@ -1,9 +1,16 @@
 'use strict';
-const DID_API = {
-  key: 'Z2FicmllbEBzY3BsYXRpY2EuY29tOj9KbYJAi2G2dhZeqcw49ex',
+let DID_API = {
+  key: null,
   url: 'https://api.d-id.com',
-  service: 'talks'
+  service: 'talks',
 };
+
+(async function loadKeys() {
+  const res = await fetch('/api/env');
+  const data = await res.json();
+  DID_API.key = data.DID_API_KEY;
+})();
+
 
 if (DID_API.key == '🤫') alert('Please put your api key inside ./api.json and restart..');
 
