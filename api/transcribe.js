@@ -1,10 +1,16 @@
-const formidable = require('formidable');
-const fs = require('fs');
-const FormData = require('form-data');
+import formidable from 'formidable';
+import { Readable } from 'stream';
+import FormData from 'form-data';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 let transcriptLog = [];
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST allowed' });
   }
@@ -14,32 +20,24 @@ module.exports = async (req, res) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       console.error('❌ Form parse error:', err);
-      return res.status(500).json({ error: 'Form parse error', details: err.message });
+      return res.status(500).json({ error: 'Form parse error' });
     }
-
-    console.log('🧾 Fields:', fields);
-    console.log('📁 Files:', files);
 
     const file = files.audio;
-    if (!file) {
-      console.error('❌ No "audio" file received.');
-      return res.status(400).json({ error: 'No "audio" file received' });
+    if (!file || !file[0] || !file[0].originalFilename || !file[0]._writeStream || !file[0]._writeStream._buffer) {
+      console.error('❌ Invalid file object:', file);
+      return res.status(400).json({ error: 'Invalid file object, no buffer found.' });
     }
 
-    const filepath = file.filepath || file.path;
-    if (!filepath) {
-      console.error('❌ No valid path found on uploaded file object.');
-      return res.status(500).json({ error: 'Invalid file object, no path found.' });
-    }
-
-    const fileStream = fs.createReadStream(filepath);
+    const buffer = file[0]._writeStream._buffer;
+    const filename = file[0].originalFilename;
 
     try {
       const formData = new FormData();
-      formData.append('file', fileStream, file.originalFilename || 'audio.webm');
+      formData.append('file', Readable.from(buffer), filename);
       formData.append('model', 'whisper-1');
 
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      const openaiRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
@@ -48,10 +46,10 @@ module.exports = async (req, res) => {
         body: formData
       });
 
-      const text = await response.text();
-      console.log('📩 OpenAI response:', text);
+      const text = await openaiRes.text(); // easier to debug
+      console.log('📩 OpenAI response raw:', text);
 
-      if (!response.ok) {
+      if (!openaiRes.ok) {
         return res.status(500).json({ error: 'OpenAI error', details: text });
       }
 
@@ -59,9 +57,10 @@ module.exports = async (req, res) => {
       transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
 
       return res.status(200).json({ text: data.text, transcriptLog });
+
     } catch (e) {
       console.error('❌ Unexpected error:', e);
       return res.status(500).json({ error: 'Unexpected error', message: e.message });
     }
   });
-};
+}
