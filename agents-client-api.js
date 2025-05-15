@@ -487,14 +487,14 @@ async function agentsAPIworkflow() {
     preview_name: 'Emma',
   });
   console.log('Create Agent: ', createAgent.data);
-  let agentId = createAgent.data.id;
+  agentId = createAgent.data.id;
   console.log('Agent ID: ' + agentId);
 
   // Agents Overview - Step 2: Create a new Chat session with the Agent
   // https://docs.d-id.com/reference/agents-overview#%EF%B8%8F-step-2-create-a-new-chat-session-with-the-agent
   const createChat = await axios.post(`/agents/${agentId}/chat`);
   console.log('Create Chat: ', createChat.data);
-  let chatId = createChat.data.id;
+  chatId = createChat.data.id;
   console.log('Chat ID: ' + chatId);
 
   // Agents Overview - Step 3: Send a Message to a Chat session
