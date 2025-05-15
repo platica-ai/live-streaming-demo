@@ -5,7 +5,7 @@
     "express": "^4.21.0",
     "ws": "^8.18.0",
     "formidable": "^3.5.0",
-    "form-data": "^4.0.0"
+    "form-data": "^4.0.0",
     "busboy": "^1.6.0"
   },
   "scripts": {
