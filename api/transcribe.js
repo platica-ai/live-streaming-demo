@@ -18,10 +18,18 @@ export default async function handler(req, res) {
   const form = new formidable.IncomingForm({ keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
-    if (err) return res.status(500).json({ error: 'Form parse error' });
+  if (err) {
+    console.error('Form parse error:', err);
+    return res.status(500).json({ error: 'Form parse error' });
+  }
 
-    const file = files.audio;
-    const fileStream = fs.createReadStream(file.filepath);
+  if (!files || !files.audio) {
+    console.error('Missing audio file in form data.');
+    return res.status(400).json({ error: 'Missing audio file in form data' });
+  }
+
+  const file = files.audio;
+  const fileStream = fs.createReadStream(file.filepath);
 
 const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
   method: 'POST',
