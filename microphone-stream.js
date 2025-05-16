@@ -43,7 +43,30 @@ const gptResponse = await fetch('/api/chat', {
 const gptData = await gptResponse.json();
 console.log('🧠 GPT reply:', gptData.reply);
 
-// TODO: send gptData.reply to Luna avatar
+// Send the GPT reply to Luna's video stream via D-ID
+await fetch(`https://api.d-id.com/talks/streams/${streamId}`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Basic ${DID_API.key}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    script: {
+      type: 'text',
+      input: gptData.reply,
+      provider: {
+        type: 'microsoft',
+        voice_id: 'es-MX-DaliaNeural', // or keep Luna's current voice
+      },
+      ssml: false,
+    },
+    config: {
+      stitch: true,
+    },
+    session_id: sessionId,
+  }),
+});
+
 
 
       const result = await response.json();
