@@ -35,7 +35,7 @@ Always encourage them to speak more.
 
   try {
     const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
+      model: 'gpt-4', // You can switch to 'gpt-3.5-turbo' if you prefer
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: transcript }
