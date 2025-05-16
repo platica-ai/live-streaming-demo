@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { IncomingForm } = require('formidable');
 const FormData = require('form-data');
 const axios = require('axios');
@@ -10,7 +11,6 @@ exports.config = {
 };
 
 let transcriptLog = [];
-let lastAudioFilename = null; // 🆕 Store the most recent audio file name
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -24,8 +24,6 @@ module.exports = async function handler(req, res) {
   });
 
   form.parse(req, async (err, fields, files) => {
-    console.log('🎤 Files received:', files);
-
     if (err) {
       console.error('❌ Form parse error:', err);
       return res.status(500).json({ error: 'Form parse error' });
@@ -38,16 +36,26 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid file object, no path found.' });
     }
 
-    const fileStream = fs.createReadStream(file.filepath);
-    lastAudioFilename = file.newFilename; // 🆕 Save filename for debug route
+    // ✅ Save copy for debugging
+    const publicPath = path.resolve('./public/audio-debug');
+    if (!fs.existsSync(publicPath)) {
+      fs.mkdirSync(publicPath, { recursive: true });
+    }
 
+    const debugFilename = `${Date.now()}-${file.originalFilename}`;
+    const debugPath = path.join(publicPath, debugFilename);
+    fs.copyFileSync(file.filepath, debugPath);
+    console.log('🧪 Saved debug file at:', `/audio-debug/${debugFilename}`);
+
+    // 🔄 Transcribe using Whisper
+    const fileStream = fs.createReadStream(file.filepath);
     const formData = new FormData();
     formData.append('file', fileStream, {
       filename: file.originalFilename || 'audio.webm',
       contentType: 'audio/webm',
     });
     formData.append('model', 'whisper-1');
-    formData.append('language', 'es'); // Force Spanish transcription
+    formData.append('language', 'es');
 
     try {
       const response = await axios.post(
@@ -64,10 +72,13 @@ module.exports = async function handler(req, res) {
       const data = response.data;
       console.log('🔵 OpenAI response:', data);
 
-      transcriptLog.push({ text: data.text, timestamp: new Date().toISOString(), filename: lastAudioFilename });
+      transcriptLog.push({
+        text: data.text,
+        file: `/audio-debug/${debugFilename}`,
+        timestamp: new Date().toISOString(),
+      });
 
-      return res.status(200).json({ text: data.text, transcriptLog, filename: lastAudioFilename });
-
+      return res.status(200).json({ text: data.text, debugUrl: `/audio-debug/${debugFilename}` });
     } catch (e) {
       console.error('❌ OpenAI error:', e.response?.data || e.message);
       return res.status(500).json({
@@ -77,6 +88,3 @@ module.exports = async function handler(req, res) {
     }
   });
 };
-
-// 🆕 Expose last filename to other modules
-module.exports.lastAudioFilename = () => lastAudioFilename;
