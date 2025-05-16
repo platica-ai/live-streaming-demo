@@ -56,7 +56,12 @@ async function startMicrophoneStream() {
         throw new Error('Missing streamId or sessionId');
       }
 
-      await fetch(`https://api.d-id.com/talks/streams/${streamId}`, {
+      if (!window.streamId || !window.sessionId) {
+  console.warn("Stream or session ID not ready yet, skipping video reply.");
+  return;
+}
+
+await fetch(`https://api.d-id.com/talks/streams/${window.streamId}`, {
         method: 'POST',
         headers: {
           Authorization: `Basic ${window.DID_API.key}`,
