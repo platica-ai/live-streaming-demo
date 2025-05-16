@@ -81,7 +81,23 @@ async function startMicrophoneStream() {
 
       const result = await response.json();
       console.log('📝 Transcription:', result.text);
+      // 🧹 Filter known hallucinated phrases
+const hallucinatedPhrases = [
+  "subtítulos realizados por la comunidad de amara.org",
+  "subscribe to my channel",
+  "thanks for watching",
+  "visit amara.org",
+];
 
+const cleanedText = result.text.toLowerCase().trim();
+
+if (hallucinatedPhrases.some(phrase => cleanedText === phrase || cleanedText.includes(phrase))) {
+  console.warn("🚫 Detected hallucinated subtitle. Skipping transcript:", cleanedText);
+  return; // Skip to next loop
+}
+
+
+      
       if (!result.text || result.text.trim() === '') {
         throw new Error('Empty transcription. Skipping.');
       }
