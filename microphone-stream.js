@@ -120,10 +120,22 @@ if (hallucinatedPhrases.some(phrase => cleanedText === phrase || cleanedText.inc
       console.log('🧠 GPT reply:', gptData.reply);
 
       // 🎥 Step 3: Send GPT reply to avatar
-      const { streamId, sessionId } = window;
-      if (!streamId || !sessionId) {
-        throw new Error('Missing streamId or sessionId');
-      }
+     // 🕒 Wait up to 5 seconds for streamId, sessionId, and isStreamReady
+let waitTime = 0;
+while (
+  (!window.streamId || !window.sessionId || !window.isStreamReady) &&
+  waitTime < 5000
+) {
+  await new Promise((res) => setTimeout(res, 200));
+  waitTime += 200;
+}
+
+const { streamId, sessionId } = window;
+if (!streamId || !sessionId || !window.isStreamReady) {
+  console.warn("⚠️ Stream not ready after waiting. Skipping avatar call.");
+  return;
+}
+
 
       if (!window.streamId || !window.sessionId) {
         console.warn("Stream or session ID not ready yet, skipping video reply.");
