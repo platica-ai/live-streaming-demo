@@ -16,11 +16,19 @@ async function startMicrophoneStream() {
     const blob = new Blob(audioChunks, { type: 'audio/webm' });
     audioChunks = [];
 
+    // 🛑 Skip empty/noise-only blobs
+    if (blob.size < 2000) {
+      console.log('🎤 Skipping small blob (likely silence)');
+      mediaRecorder.start();
+      setTimeout(() => mediaRecorder.stop(), 4000);
+      return;
+    }
+
     const formData = new FormData();
     formData.append('audio', blob, 'chunk.webm');
 
     try {
-      // 🎙️ 1. Send to Whisper
+      // 1. Transcribe with Whisper
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
@@ -29,11 +37,11 @@ async function startMicrophoneStream() {
       const result = await response.json();
       console.log('📝 Transcription:', result.text);
 
-      // 🧠 2. Get student info
+      // 2. Get student's level and goal
       const studentLevel = document.getElementById('level').value;
       const studentGoal = document.getElementById('goal').value;
 
-      // 💬 3. Send to GPT
+      // 3. Send to GPT
       const gptResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -47,11 +55,11 @@ async function startMicrophoneStream() {
       const gptData = await gptResponse.json();
       console.log('🧠 GPT reply:', gptData.reply);
 
-      // 🎥 4. Send GPT reply to D-ID avatar
-      await fetch(`https://api.d-id.com/talks/streams/${streamId}`, {
+      // 4. Send GPT reply to D-ID avatar
+      await fetch(`https://api.d-id.com/talks/streams/${window.streamId}`, {
         method: 'POST',
         headers: {
-          Authorization: `Basic ${DID_API.key}`,
+          Authorization: `Basic ${window.DID_API?.key}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -67,7 +75,7 @@ async function startMicrophoneStream() {
           config: {
             stitch: true,
           },
-          session_id: sessionId,
+          session_id: window.sessionId,
         }),
       });
 
