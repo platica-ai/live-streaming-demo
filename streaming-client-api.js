@@ -1,29 +1,13 @@
 'use strict';
+
 let DID_API = {
   key: null,
   url: 'https://api.d-id.com',
   service: 'talks',
 };
 
-async function waitForKeys() {
-  const res = await fetch('/api/env');
-  const data = await res.json();
-  DID_API.key = data.DID_API_KEY;
-
-  if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
-    throw new Error('Missing or invalid DID_API_KEY');
-  }
-}
-
-window.onload = async () => {
-  try {
-    await waitForKeys();               // 🔑 Wait until keys are loaded
-    playIdleVideo();                   // ▶️ Then run your startup logic
-    console.log("DID_API.key loaded:", DID_API.key);
-  } catch (err) {
-    alert(err.message);                // ⚠️ Show meaningful error
-  }
-};
+// ⬇️ Expose DID_API for other scripts
+window.DID_API = DID_API;
 
 const RTCPeerConnection = (
   window.RTCPeerConnection ||
@@ -37,12 +21,15 @@ let streamId;
 let sessionId;
 let sessionClientAnswer;
 
+// ⬇️ Expose stream and session ID to other scripts
+window.streamId = null;
+window.sessionId = null;
+
 let statsIntervalId;
 let lastBytesReceived;
 let videoIsPlaying = false;
 let streamVideoOpacity = 0;
 
-// Set this variable to true to request stream warmup upon connection to mitigate potential jittering issues
 const stream_warmup = true;
 let isStreamReady = !stream_warmup;
 
@@ -59,8 +46,8 @@ const streamEventLabel = document.getElementById('stream-event-label');
 
 const presenterInputByService = {
   talks: {
-  source_url: '/luna_idle.mp4', // or the correct public image URL for Luna
-},
+    source_url: '/luna_idle.mp4',
+  },
 };
 
 const connectButton = document.getElementById('connect-button');
@@ -72,11 +59,6 @@ connectButton.onclick = async () => {
   stopAllStreams();
   closePC();
 
-  /**
-   * Set 'stream_warmup' to 'true' in the payload to initiate idle streaming at the beginning of the connection, addressing jittering issues.
-   * The idle streaming process is transparent to the user and is concealed by triggering a 'stream/ready' event on the data channel,
-   * indicating that idle streaming has concluded and the stream channel is ready for use.
-   */
   const sessionResponse = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams`, {
     method: 'POST',
     headers: {
@@ -90,6 +72,10 @@ connectButton.onclick = async () => {
   streamId = newStreamId;
   sessionId = newSessionId;
 
+  // ⬇️ Assign globally
+  window.streamId = streamId;
+  window.sessionId = sessionId;
+
   try {
     sessionClientAnswer = await createPeerConnection(offer, iceServers);
   } catch (e) {
@@ -99,7 +85,7 @@ connectButton.onclick = async () => {
     return;
   }
 
-  const sdpResponse = await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
+  await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${DID_API.key}`,
