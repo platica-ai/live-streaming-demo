@@ -227,9 +227,15 @@
 
   // ✅ Start microphone only when "Start" is clicked
   const startBtn = document.getElementById('start-button');
-  startBtn.addEventListener('click', () => {
+ startBtn.addEventListener('click', () => {
+  if (window.streamId && window.sessionId) {
     startMicrophoneStream();
-  });
+  } else {
+    console.error('❌ streamId or sessionId missing. Cannot start microphone stream.');
+    alert('Please wait until the avatar is fully connected before starting.');
+  }
+});
+
 </script>
 
   </body>
