@@ -25,6 +25,27 @@ async function startMicrophoneStream() {
         body: formData,
       });
 
+      // Get student settings from the dropdown
+const studentLevel = document.getElementById('level').value;
+const studentGoal = document.getElementById('goal').value;
+
+// Send transcript to GPT
+const gptResponse = await fetch('/api/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    transcript: result.text,
+    studentLevel,
+    studentGoal,
+  }),
+});
+
+const gptData = await gptResponse.json();
+console.log('🧠 GPT reply:', gptData.reply);
+
+// TODO: send gptData.reply to Luna avatar
+
+
       const result = await response.json();
       console.log('Transcription:', result.text);
       // TODO: Pass result.text to ChatGPT for reply
