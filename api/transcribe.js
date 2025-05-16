@@ -64,16 +64,17 @@ module.exports = async function handler(req, res) {
     formData.append('language', 'es');
 
     try {
-      const response = await axios.post(
-        'https://api.openai.com/v1/audio/transcriptions',
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            ...formData.getHeaders(),
-          },
-        }
-      );
+     const response = await axios.post(
+  'https://api.openai.com/v1/audio/transcriptions?condition_on_previous_text=false',
+  formData,
+  {
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      ...formData.getHeaders(),
+    },
+  }
+);
+
 
       const data = response.data;
       console.log('🔵 OpenAI response:', data);
