@@ -1,15 +1,14 @@
-// pages/api/proxy-did.js
+// pages/api/proxy-did/[...path].js
 import https from 'https';
 
 export default async function handler(req, res) {
   const { method, body, headers, url } = req;
 
   const targetPath = req.url.replace('/api/proxy-did', '');
-
   const proxyUrl = `https://api.d-id.com${targetPath}`;
 
   try {
-    const didRes = await fetch(proxyUrl, {
+    const proxyRes = await fetch(proxyUrl, {
       method,
       headers: {
         Authorization: `Basic ${process.env.DID_API_KEY}`,
@@ -19,9 +18,9 @@ export default async function handler(req, res) {
       agent: new https.Agent({ keepAlive: true }),
     });
 
-    const text = await didRes.text();
+    const text = await proxyRes.text();
 
-    res.status(didRes.status);
+    res.status(proxyRes.status);
     res.setHeader('Content-Type', 'application/json');
     res.send(text);
   } catch (error) {
@@ -29,3 +28,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Proxy request failed' });
   }
 }
+
