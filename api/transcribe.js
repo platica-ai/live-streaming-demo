@@ -10,6 +10,7 @@ exports.config = {
 };
 
 let transcriptLog = [];
+let lastAudioFilename = null; // 🆕 Store the most recent audio file name
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -38,6 +39,7 @@ module.exports = async function handler(req, res) {
     }
 
     const fileStream = fs.createReadStream(file.filepath);
+    lastAudioFilename = file.newFilename; // 🆕 Save filename for debug route
 
     const formData = new FormData();
     formData.append('file', fileStream, {
@@ -62,8 +64,9 @@ module.exports = async function handler(req, res) {
       const data = response.data;
       console.log('🔵 OpenAI response:', data);
 
-      transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
-      return res.status(200).json({ text: data.text, transcriptLog });
+      transcriptLog.push({ text: data.text, timestamp: new Date().toISOString(), filename: lastAudioFilename });
+
+      return res.status(200).json({ text: data.text, transcriptLog, filename: lastAudioFilename });
 
     } catch (e) {
       console.error('❌ OpenAI error:', e.response?.data || e.message);
@@ -74,3 +77,6 @@ module.exports = async function handler(req, res) {
     }
   });
 };
+
+// 🆕 Expose last filename to other modules
+module.exports.lastAudioFilename = () => lastAudioFilename;
