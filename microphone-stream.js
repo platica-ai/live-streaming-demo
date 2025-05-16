@@ -1,9 +1,50 @@
 let mediaRecorder;
 let audioChunks = [];
+let lastTranscriptTime = 0;
+
+// 🆕 Volume-based speech detection
+async function hasUserSpoken(stream) {
+  return new Promise((resolve) => {
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const micSource = audioContext.createMediaStreamSource(stream);
+    analyser.fftSize = 512;
+    micSource.connect(analyser);
+
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    let spoken = false;
+    let checks = 0;
+
+    const checkInterval = setInterval(() => {
+      analyser.getByteFrequencyData(dataArray);
+      const maxVolume = Math.max(...dataArray);
+
+      if (maxVolume > 15) {
+        spoken = true;
+        clearInterval(checkInterval);
+        resolve(true);
+        audioContext.close();
+      }
+
+      if (++checks > 10) {
+        clearInterval(checkInterval);
+        resolve(false);
+        audioContext.close();
+      }
+    }, 100);
+  });
+}
+
 
 async function startMicrophoneStream() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+const spoken = await hasUserSpoken(stream);
+if (!spoken) {
+  console.log('🛑 No voice detected. Skipping transcription.');
+  return;
+}
 
+  
   mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
   mediaRecorder.ondataavailable = (event) => {
@@ -14,8 +55,21 @@ async function startMicrophoneStream() {
 
   mediaRecorder.onstop = async () => {
     const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    audioChunks = [];
+   if (audioChunks.length === 0) {
+  console.warn('⚠️ No audio chunks to process.');
+  return;
+}
 
+const blob = new Blob(audioChunks, { type: 'audio/webm' });
+audioChunks = [];
+
+if (blob.size < 1000) {
+  console.warn('⚠️ Audio too short or empty. Skipping.');
+  return;
+}
+
+
+    
     const formData = new FormData();
     formData.append('audio', blob, 'chunk.webm');
 
