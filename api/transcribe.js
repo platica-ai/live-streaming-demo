@@ -4,6 +4,10 @@ const { IncomingForm } = require('formidable');
 const FormData = require('form-data');
 const axios = require('axios');
 
+// ✅ Force Vercel to bundle busboy, which formidable relies on
+require('busboy');
+console.log('✔ Busboy required:', typeof require('busboy'));
+
 exports.config = {
   api: {
     bodyParser: false,
