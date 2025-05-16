@@ -45,6 +45,7 @@ module.exports = async function handler(req, res) {
       contentType: 'audio/webm',
     });
     formData.append('model', 'whisper-1');
+    formData.append('language', 'es'); // Force Spanish transcription
 
     try {
       const response = await axios.post(
