@@ -24,6 +24,8 @@ module.exports = async function handler(req, res) {
   });
 
   form.parse(req, async (err, fields, files) => {
+    console.log('🎤 Files received:', files);
+
     if (err) {
       console.error('❌ Form parse error:', err);
       return res.status(500).json({ error: 'Form parse error' });
@@ -36,19 +38,20 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid file object, no path found.' });
     }
 
-    // ✅ Save copy for debugging
-    const publicPath = path.resolve('./public/audio-debug');
-    if (!fs.existsSync(publicPath)) {
-      fs.mkdirSync(publicPath, { recursive: true });
+    // ✅ DEBUG: Save audio to /tmp instead of /public (Vercel limitation)
+    const debugFilename = `${Date.now()}-${file.originalFilename || 'chunk.webm'}`;
+    const debugPath = path.join('/tmp', debugFilename);
+
+    try {
+      fs.copyFileSync(file.filepath, debugPath);
+      console.log(`🧪 Saved debug file at: ${debugPath}`);
+    } catch (copyErr) {
+      console.error('❌ Failed to save debug file:', copyErr.message);
     }
 
-    const debugFilename = `${Date.now()}-${file.originalFilename}`;
-    const debugPath = path.join(publicPath, debugFilename);
-    fs.copyFileSync(file.filepath, debugPath);
-    console.log('🧪 Saved debug file at:', `/audio-debug/${debugFilename}`);
-
-    // 🔄 Transcribe using Whisper
+    // 🔁 Transcribe with OpenAI
     const fileStream = fs.createReadStream(file.filepath);
+
     const formData = new FormData();
     formData.append('file', fileStream, {
       filename: file.originalFilename || 'audio.webm',
@@ -72,13 +75,10 @@ module.exports = async function handler(req, res) {
       const data = response.data;
       console.log('🔵 OpenAI response:', data);
 
-      transcriptLog.push({
-        text: data.text,
-        file: `/audio-debug/${debugFilename}`,
-        timestamp: new Date().toISOString(),
-      });
+      transcriptLog.push({ text: data.text, timestamp: new Date().toISOString() });
 
-      return res.status(200).json({ text: data.text, debugUrl: `/audio-debug/${debugFilename}` });
+      return res.status(200).json({ text: data.text, debugFile: debugFilename, transcriptLog });
+
     } catch (e) {
       console.error('❌ OpenAI error:', e.response?.data || e.message);
       return res.status(500).json({
