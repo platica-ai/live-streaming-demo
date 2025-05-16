@@ -1,16 +1,31 @@
+// pages/api/proxy-did.js
+import https from 'https';
+
 export default async function handler(req, res) {
-  const DID_API_KEY = process.env.DID_API_KEY;
-  const url = `https://api.d-id.com${req.url.replace('/api/proxy-did', '')}`;
+  const { method, body, headers, url } = req;
 
-  const didRes = await fetch(url, {
-    method: req.method,
-    headers: {
-      Authorization: `Basic ${DID_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: req.method === 'POST' ? JSON.stringify(req.body) : undefined,
-  });
+  const targetPath = req.url.replace('/api/proxy-did', '');
 
-  const data = await didRes.json();
-  res.status(didRes.status).json(data);
+  const proxyUrl = `https://api.d-id.com${targetPath}`;
+
+  try {
+    const didRes = await fetch(proxyUrl, {
+      method,
+      headers: {
+        Authorization: `Basic ${process.env.DID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: method !== 'GET' && method !== 'HEAD' ? JSON.stringify(body) : undefined,
+      agent: new https.Agent({ keepAlive: true }),
+    });
+
+    const text = await didRes.text();
+
+    res.status(didRes.status);
+    res.setHeader('Content-Type', 'application/json');
+    res.send(text);
+  } catch (error) {
+    console.error('❌ Proxy error:', error);
+    res.status(500).json({ error: 'Proxy request failed' });
+  }
 }
