@@ -6,14 +6,8 @@ let DID_API = {
   service: 'talks',
 };
 
-// ⬇️ Expose DID_API for other scripts
+// ✅ Expose DID_API globally
 window.DID_API = DID_API;
-
-const RTCPeerConnection = (
-  window.RTCPeerConnection ||
-  window.webkitRTCPeerConnection ||
-  window.mozRTCPeerConnection
-).bind(window);
 
 let peerConnection;
 let pcDataChannel;
@@ -21,7 +15,7 @@ let streamId;
 let sessionId;
 let sessionClientAnswer;
 
-// ⬇️ Expose stream and session ID to other scripts
+// ✅ Expose streamId and sessionId globally
 window.streamId = null;
 window.sessionId = null;
 
