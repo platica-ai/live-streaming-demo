@@ -372,6 +372,8 @@ startButton.onclick = async () => {
       body: JSON.stringify({
         streamId: streamId,
         sessionId: sessionId,
+        window.streamId = streamId;
+        window.sessionId = sessionId;
         messages: [
           {
             role: 'user',
