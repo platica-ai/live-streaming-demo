@@ -20,68 +20,46 @@ async function startMicrophoneStream() {
     formData.append('audio', blob, 'chunk.webm');
 
     try {
+      // 🎙️ Step 1: Send to Whisper
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
       });
 
-      // Get student settings from the dropdown
-const studentLevel = document.getElementById('level').value;
-const studentGoal = document.getElementById('goal').value;
-
-// Send transcript to GPT
-const gptResponse = await fetch('/api/chat', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    transcript: result.text,
-    studentLevel,
-    studentGoal,
-  }),
-});
-
-const gptData = await gptResponse.json();
-console.log('🧠 GPT reply:', gptData.reply);
-
-// Send the GPT reply to Luna's video stream via D-ID
-await fetch(`https://api.d-id.com/talks/streams/${streamId}`, {
-  method: 'POST',
-  headers: {
-    Authorization: `Basic ${DID_API.key}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    script: {
-      type: 'text',
-      input: gptData.reply,
-      provider: {
-        type: 'microsoft',
-        voice_id: 'es-MX-DaliaNeural', // or keep Luna's current voice
-      },
-      ssml: false,
-    },
-    config: {
-      stitch: true,
-    },
-    session_id: sessionId,
-  }),
-});
-
-
-
       const result = await response.json();
-      console.log('Transcription:', result.text);
-      // TODO: Pass result.text to ChatGPT for reply
-    } catch (err) {
-      console.error('Transcription error:', err);
-    }
+      console.log('📝 Transcription:', result.text);
 
-    mediaRecorder.start();
-    setTimeout(() => mediaRecorder.stop(), 4000); // Send every 4 seconds
-  };
+      // 🧠 Step 2: Get student input
+      const studentLevel = document.getElementById('level').value;
+      const studentGoal = document.getElementById('goal').value;
 
-  mediaRecorder.start();
-  setTimeout(() => mediaRecorder.stop(), 4000);
-}
+      // 🔁 Step 3: Send transcript to GPT
+      const gptResponse = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transcript: result.text,
+          studentLevel,
+          studentGoal,
+        }),
+      });
 
-export { startMicrophoneStream };
+      const gptData = await gptResponse.json();
+      console.log('🧠 GPT reply:', gptData.reply);
+
+      // 📺 Step 4: Send GPT reply to Luna (D-ID Stream)
+      await fetch(`https://api.d-id.com/talks/streams/${streamId}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${DID_API.key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          script: {
+            type: 'text',
+            input: gptData.reply,
+            provider: {
+              type: 'microsoft',
+              voice_id: 'es-MX-DaliaNeural', // 🇲🇽 Use Luna's voice
+            },
+            ssml: false,
