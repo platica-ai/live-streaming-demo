@@ -6,8 +6,10 @@ let DID_API = {
   service: 'talks',
 };
 
-// ✅ Expose DID_API globally
 window.DID_API = DID_API;
+window.streamId = null;
+window.sessionId = null;
+
 
 let peerConnection;
 let pcDataChannel;
