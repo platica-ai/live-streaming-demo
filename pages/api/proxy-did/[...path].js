@@ -33,9 +33,9 @@ async function proxyRequest(req, method, params) {
         'Content-Type': 'application/json',
       },
     });
-  } catch (error) {
-    console.error('❌ Proxy error:', error);
-    return new Response(JSON.stringify({ error: 'Proxy failed', details: error.message }), {
+  } catch (err) {
+    console.error('Proxy error:', err);
+    return new Response(JSON.stringify({ error: 'Proxy failed', detail: err.message }), {
       status: 500,
     });
   }
