@@ -45,6 +45,7 @@ module.exports = async function handler(req, res) {
     try {
       const audioBuffer = fs.readFileSync(tempFilePath);
       audioBase64 = audioBuffer.toString('base64');
+      console.log('📦 Audio file converted to base64');
     } catch (readErr) {
       console.error('❌ Failed to read debug file for base64:', readErr);
     }
