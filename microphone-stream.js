@@ -35,16 +35,15 @@ async function hasUserSpoken(stream) {
   });
 }
 
-
 async function startMicrophoneStream() {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-const spoken = await hasUserSpoken(stream);
-if (!spoken) {
-  console.log('🛑 No voice detected. Skipping transcription.');
-  return;
-}
+  const spoken = await hasUserSpoken(stream);
 
-  
+  if (!spoken) {
+    console.log('🛑 No voice detected. Skipping transcription.');
+    return;
+  }
+
   mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
   mediaRecorder.ondataavailable = (event) => {
@@ -54,22 +53,22 @@ if (!spoken) {
   };
 
   mediaRecorder.onstop = async () => {
-    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-   if (audioChunks.length === 0) {
-  console.warn('⚠️ No audio chunks to process.');
-  return;
-}
+    if (audioChunks.length === 0) {
+      console.warn('⚠️ No audio chunks to process.');
+      return;
+    }
 
-const blob = new Blob(audioChunks, { type: 'audio/webm' });
-audioChunks = [];
+    const tempBlob = new Blob(audioChunks, { type: 'audio/webm' });
 
-if (blob.size < 1000) {
-  console.warn('⚠️ Audio too short or empty. Skipping.');
-  return;
-}
+    if (tempBlob.size < 1000) {
+      console.warn('⚠️ Audio too short or empty. Skipping.');
+      audioChunks = [];
+      return;
+    }
 
+    const blob = tempBlob;
+    audioChunks = [];
 
-    
     const formData = new FormData();
     formData.append('audio', blob, 'chunk.webm');
 
@@ -111,11 +110,11 @@ if (blob.size < 1000) {
       }
 
       if (!window.streamId || !window.sessionId) {
-  console.warn("Stream or session ID not ready yet, skipping video reply.");
-  return;
-}
+        console.warn("Stream or session ID not ready yet, skipping video reply.");
+        return;
+      }
 
-await fetch(`https://api.d-id.com/talks/streams/${window.streamId}`, {
+      await fetch(`https://api.d-id.com/talks/streams/${window.streamId}`, {
         method: 'POST',
         headers: {
           Authorization: `Basic ${window.DID_API.key}`,
