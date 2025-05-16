@@ -221,10 +221,16 @@
       </div>
     </div>
 
-      <script type="module">
-        import { startMicrophoneStream } from './microphone-stream.js';
-        import './agents-client-api.js';
-        startMicrophoneStream(); // This starts listening immediately
-      </script>
+<script type="module">
+  import { startMicrophoneStream } from './microphone-stream.js';
+  import './agents-client-api.js';
+
+  // ✅ Start microphone only when "Start" is clicked
+  const startBtn = document.getElementById('start-button');
+  startBtn.addEventListener('click', () => {
+    startMicrophoneStream();
+  });
+</script>
+
   </body>
 </html>
