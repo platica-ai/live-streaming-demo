@@ -62,6 +62,7 @@ module.exports = async function handler(req, res) {
     });
     formData.append('model', 'whisper-1');
     formData.append('language', 'es');
+    formData.append('temperature', '0');
 
     try {
      const response = await axios.post(
