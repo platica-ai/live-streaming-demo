@@ -1,94 +1,99 @@
-let mediaRecorder;
-let audioChunks = [];
+'use strict';
 
-async function startMicrophoneStream() {
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+let DID_API = {
+  key: null,
+  url: 'https://api.d-id.com',
+  service: 'talks',
+};
 
-  mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+// ⬇️ Expose DID_API for other scripts
+window.DID_API = DID_API;
 
-  mediaRecorder.ondataavailable = (event) => {
-    if (event.data.size > 0) {
-      audioChunks.push(event.data);
-    }
-  };
+const RTCPeerConnection = (
+  window.RTCPeerConnection ||
+  window.webkitRTCPeerConnection ||
+  window.mozRTCPeerConnection
+).bind(window);
 
-  mediaRecorder.onstop = async () => {
-    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-    audioChunks = [];
+let peerConnection;
+let pcDataChannel;
+let streamId;
+let sessionId;
+let sessionClientAnswer;
 
-    // 🛑 Skip empty/noise-only blobs
-    if (blob.size < 2000) {
-      console.log('🎤 Skipping small blob (likely silence)');
-      mediaRecorder.start();
-      setTimeout(() => mediaRecorder.stop(), 4000);
-      return;
-    }
+// ⬇️ Expose stream and session ID to other scripts
+window.streamId = null;
+window.sessionId = null;
 
-    const formData = new FormData();
-    formData.append('audio', blob, 'chunk.webm');
+let statsIntervalId;
+let lastBytesReceived;
+let videoIsPlaying = false;
+let streamVideoOpacity = 0;
 
-    try {
-      // 1. Transcribe with Whisper
-      const response = await fetch('/api/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
+const stream_warmup = true;
+let isStreamReady = !stream_warmup;
 
-      const result = await response.json();
-      console.log('📝 Transcription:', result.text);
+const idleVideoElement = document.getElementById('idle-video-element');
+const streamVideoElement = document.getElementById('stream-video-element');
+idleVideoElement.setAttribute('playsinline', '');
+streamVideoElement.setAttribute('playsinline', '');
+const peerStatusLabel = document.getElementById('peer-status-label');
+const iceStatusLabel = document.getElementById('ice-status-label');
+const iceGatheringStatusLabel = document.getElementById('ice-gathering-status-label');
+const signalingStatusLabel = document.getElementById('signaling-status-label');
+const streamingStatusLabel = document.getElementById('streaming-status-label');
+const streamEventLabel = document.getElementById('stream-event-label');
 
-      // 2. Get student's level and goal
-      const studentLevel = document.getElementById('level').value;
-      const studentGoal = document.getElementById('goal').value;
+const presenterInputByService = {
+  talks: {
+    source_url: '/luna_idle.mp4',
+  },
+};
 
-      // 3. Send to GPT
-      const gptResponse = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          transcript: result.text,
-          studentLevel,
-          studentGoal,
-        }),
-      });
+const connectButton = document.getElementById('connect-button');
+connectButton.onclick = async () => {
+  if (peerConnection && peerConnection.connectionState === 'connected') {
+    return;
+  }
 
-      const gptData = await gptResponse.json();
-      console.log('🧠 GPT reply:', gptData.reply);
+  stopAllStreams();
+  closePC();
 
-      // 4. Send GPT reply to D-ID avatar
-      await fetch(`https://api.d-id.com/talks/streams/${window.streamId}`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Basic ${window.DID_API?.key}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          script: {
-            type: 'text',
-            input: gptData.reply,
-            provider: {
-              type: 'microsoft',
-              voice_id: 'es-MX-DaliaNeural',
-            },
-            ssml: false,
-          },
-          config: {
-            stitch: true,
-          },
-          session_id: window.sessionId,
-        }),
-      });
+  const sessionResponse = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${DID_API.key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ...presenterInputByService[DID_API.service], stream_warmup }),
+  });
 
-    } catch (err) {
-      console.error('❌ Error during transcription or avatar response:', err);
-    }
+  const { id: newStreamId, offer, ice_servers: iceServers, session_id: newSessionId } = await sessionResponse.json();
+  streamId = newStreamId;
+  sessionId = newSessionId;
 
-    mediaRecorder.start();
-    setTimeout(() => mediaRecorder.stop(), 4000);
-  };
+  // ⬇️ Assign globally
+  window.streamId = streamId;
+  window.sessionId = sessionId;
 
-  mediaRecorder.start();
-  setTimeout(() => mediaRecorder.stop(), 4000);
-}
+  try {
+    sessionClientAnswer = await createPeerConnection(offer, iceServers);
+  } catch (e) {
+    console.log('error during streaming setup', e);
+    stopAllStreams();
+    closePC();
+    return;
+  }
 
-export { startMicrophoneStream };
+  await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${DID_API.key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      answer: sessionClientAnswer,
+      session_id: sessionId,
+    }),
+  });
+};
