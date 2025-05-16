@@ -20,7 +20,7 @@ async function startMicrophoneStream() {
     formData.append('audio', blob, 'chunk.webm');
 
     try {
-      // 🎙️ Step 1: Send to Whisper
+      // 🎙️ 1. Send to Whisper
       const response = await fetch('/api/transcribe', {
         method: 'POST',
         body: formData,
@@ -29,11 +29,11 @@ async function startMicrophoneStream() {
       const result = await response.json();
       console.log('📝 Transcription:', result.text);
 
-      // 🧠 Step 2: Get student input
+      // 🧠 2. Get student info
       const studentLevel = document.getElementById('level').value;
       const studentGoal = document.getElementById('goal').value;
 
-      // 🔁 Step 3: Send transcript to GPT
+      // 💬 3. Send to GPT
       const gptResponse = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -47,7 +47,7 @@ async function startMicrophoneStream() {
       const gptData = await gptResponse.json();
       console.log('🧠 GPT reply:', gptData.reply);
 
-      // 📺 Step 4: Send GPT reply to Luna (D-ID Stream)
+      // 🎥 4. Send GPT reply to D-ID avatar
       await fetch(`https://api.d-id.com/talks/streams/${streamId}`, {
         method: 'POST',
         headers: {
@@ -60,6 +60,27 @@ async function startMicrophoneStream() {
             input: gptData.reply,
             provider: {
               type: 'microsoft',
-              voice_id: 'es-MX-DaliaNeural', // 🇲🇽 Use Luna's voice
+              voice_id: 'es-MX-DaliaNeural',
             },
             ssml: false,
+          },
+          config: {
+            stitch: true,
+          },
+          session_id: sessionId,
+        }),
+      });
+
+    } catch (err) {
+      console.error('❌ Error during transcription or avatar response:', err);
+    }
+
+    mediaRecorder.start();
+    setTimeout(() => mediaRecorder.stop(), 4000);
+  };
+
+  mediaRecorder.start();
+  setTimeout(() => mediaRecorder.stop(), 4000);
+}
+
+export { startMicrophoneStream };
