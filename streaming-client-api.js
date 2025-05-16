@@ -370,6 +370,8 @@ function playIdleVideo() {
   idleVideo.muted = true;
   idleVideo.autoplay = true;
   idleVideo.playsInline = true;
+  idleVideo.volume = 0; // Prevent audio from being picked up by microphone
+
 
   idleVideo
     .play()
