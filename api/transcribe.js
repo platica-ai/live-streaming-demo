@@ -32,9 +32,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid file object, no path found.' });
     }
 
-    const debugFilename = `${Date.now()}-${file.originalFilename}`;
-    const tempFilePath = path.join('/tmp', debugFilename);
-
+    const tempFilePath = path.join('/tmp', `${Date.now()}-${file.originalFilename}`);
     try {
       fs.copyFileSync(file.filepath, tempFilePath);
       console.log('🧪 Saved debug file at:', tempFilePath);
@@ -42,14 +40,23 @@ module.exports = async function handler(req, res) {
       console.error('❌ Failed to save debug file:', copyErr);
     }
 
-    // Transcribe using OpenAI Whisper
+    // Read raw buffer for debugging
+    let audioBase64 = '';
+    try {
+      const audioBuffer = fs.readFileSync(tempFilePath);
+      audioBase64 = audioBuffer.toString('base64');
+    } catch (readErr) {
+      console.error('❌ Failed to read debug file for base64:', readErr);
+    }
+
+    // Transcribe with OpenAI Whisper
     const formData = new FormData();
     formData.append('file', fs.createReadStream(tempFilePath), {
       filename: file.originalFilename || 'audio.webm',
       contentType: 'audio/webm',
     });
     formData.append('model', 'whisper-1');
-    formData.append('language', 'es'); // Force Spanish transcription
+    formData.append('language', 'es');
 
     try {
       const response = await axios.post(
@@ -66,15 +73,16 @@ module.exports = async function handler(req, res) {
       const data = response.data;
       console.log('🔵 OpenAI response:', data);
 
-      const debugUrl = `https://${req.headers.host}/api/debug-audio?filename=${encodeURIComponent(debugFilename)}`;
-
-      transcriptLog.push({ text: data.text, debugUrl, timestamp: new Date().toISOString() });
+      const timestamp = new Date().toISOString();
+      transcriptLog.push({ text: data.text, timestamp });
 
       return res.status(200).json({
         text: data.text,
-        debugUrl,
-        transcriptLog,
+        audioBase64,
+        mimeType: file.mimetype,
+        timestamp,
       });
+
     } catch (e) {
       console.error('❌ OpenAI error:', e.response?.data || e.message);
       return res.status(500).json({
