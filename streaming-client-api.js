@@ -2,7 +2,7 @@
 
 let DID_API = {
   key: null,
-  url: 'https://api.d-id.com',
+  url: '/api/proxy-did',
   service: 'talks',
 };
 
