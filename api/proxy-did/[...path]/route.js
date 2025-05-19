@@ -12,25 +12,28 @@ async function proxyRequest(req, method, params) {
   const targetPath = params.path.join('/');
   const proxyUrl = `https://api.d-id.com/${targetPath}`;
 
-  const body = method !== 'GET' && method !== 'HEAD' ? await req.text() : undefined;
+  const body = method !== 'GET' && method !== 'HEAD' ? req.body : undefined;
+  const headers = new Headers(req.headers);
+
+  // Always overwrite authorization with env key
+  headers.set('Authorization', process.env.DID_API_KEY);
 
   try {
     const proxyRes = await fetch(proxyUrl, {
       method,
-      headers: {
-        Authorization: process.env.DID_API_KEY, // ✅ no "Basic " prefix here
-        'Content-Type': 'application/json',
-      },
+      headers,
       body,
+      redirect: 'follow',
       agent: new https.Agent({ keepAlive: true }),
     });
 
+    const contentType = proxyRes.headers.get('content-type') || 'application/json';
     const text = await proxyRes.text();
 
     return new Response(text, {
       status: proxyRes.status,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': contentType,
       },
     });
   } catch (error) {
