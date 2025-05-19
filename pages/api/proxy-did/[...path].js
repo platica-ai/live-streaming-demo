@@ -1,42 +1,46 @@
-import https from 'https';
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
-export async function GET(req, { params }) {
-  return proxyRequest(req, 'GET', params);
-}
-
-export async function POST(req, { params }) {
-  return proxyRequest(req, 'POST', params);
-}
-
-async function proxyRequest(req, method, params) {
-  const targetPath = params.path.join('/');
-  const proxyUrl = `https://api.d-id.com/${targetPath}`;
-
-  const body = method !== 'GET' && method !== 'HEAD' ? await req.text() : undefined;
-
+export default async function handler(req, res) {
   try {
+    const targetPath = req.query.path.join('/');
+    const proxyUrl = `https://api.d-id.com/${targetPath}`;
+
+    const method = req.method;
+
+    let body = undefined;
+    if (method !== 'GET' && method !== 'HEAD') {
+      body = await new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => {
+          data += chunk;
+        });
+        req.on('end', () => {
+          resolve(data);
+        });
+        req.on('error', err => {
+          reject(err);
+        });
+      });
+    }
+
     const proxyRes = await fetch(proxyUrl, {
       method,
       headers: {
-        Authorization: `Basic ${process.env.DID_API_KEY}`,
+        'Authorization': `Basic ${process.env.DID_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body,
-      agent: new https.Agent({ keepAlive: true }),
     });
 
-    const text = await proxyRes.text();
+    const result = await proxyRes.text();
 
-    return new Response(text, {
-      status: proxyRes.status,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (err) {
-    console.error('Proxy error:', err);
-    return new Response(JSON.stringify({ error: 'Proxy failed', detail: err.message }), {
-      status: 500,
-    });
+    res.status(proxyRes.status).send(result);
+  } catch (error) {
+    console.error('Proxy error:', error);
+    res.status(500).send('Internal Server Error');
   }
 }
