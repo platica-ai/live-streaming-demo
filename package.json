@@ -13,7 +13,7 @@
     "busboy": "^1.6.0"
   },
   "scripts": {
-    "dev": "node app.js"
+    "dev": "node app.js",
     "start": "node server.js"
   }
 }
