@@ -9,7 +9,12 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   const server = express();
 
-  // Let Next.js handle all requests
+  // Add a response for the root route
+  server.get('/', (req, res) => {
+    res.send('✅ D-ID backend is running on Render');
+  });
+
+  // Let Next.js handle everything else
   server.all('*', (req, res) => {
     return handle(req, res);
   });
