@@ -14,6 +14,7 @@
   },
   "scripts": {
     "dev": "node app.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "next build"
   }
 }
