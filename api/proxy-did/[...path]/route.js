@@ -18,7 +18,7 @@ async function proxyRequest(req, method, params) {
     const proxyRes = await fetch(proxyUrl, {
       method,
       headers: {
-        Authorization: `Basic ${process.env.DID_API_KEY}`,
+        Authorization: process.env.DID_API_KEY, // ✅ no "Basic " prefix here
         'Content-Type': 'application/json',
       },
       body,
