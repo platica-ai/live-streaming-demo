@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const didResponse = await fetch('https://api.d-id.com/talks', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${DID_API_KEY}`,
+        'Authorization': `Basic ${D_ID_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
