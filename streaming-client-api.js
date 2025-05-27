@@ -16,9 +16,6 @@ let streamId;
 let sessionId;
 let sessionClientAnswer;
 
-window.streamId = null;
-window.sessionId = null;
-
 let statsIntervalId;
 let lastBytesReceived;
 let videoIsPlaying = false;
@@ -31,6 +28,7 @@ const idleVideoElement = document.getElementById('idle-video-element');
 const streamVideoElement = document.getElementById('stream-video-element');
 idleVideoElement.setAttribute('playsinline', '');
 streamVideoElement.setAttribute('playsinline', '');
+
 const peerStatusLabel = document.getElementById('peer-status-label');
 const iceStatusLabel = document.getElementById('ice-status-label');
 const iceGatheringStatusLabel = document.getElementById('ice-gathering-status-label');
@@ -93,9 +91,72 @@ connectButton.onclick = async () => {
 
 function stopAllStreams() {
   if (streamVideoElement.srcObject) {
-    console.log('stopping video streams');
     streamVideoElement.srcObject.getTracks().forEach((track) => track.stop());
     streamVideoElement.srcObject = null;
     streamVideoOpacity = 0;
   }
 }
+
+function closePC() {
+  if (!peerConnection) return;
+  peerConnection.close();
+  clearInterval(statsIntervalId);
+  isStreamReady = !stream_warmup;
+  peerConnection = null;
+}
+
+async function fetchWithRetries(url, options, retries = 1) {
+  const maxRetryCount = 3;
+  const maxDelaySec = 4;
+
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    if (retries <= maxRetryCount) {
+      const delay = Math.min(Math.pow(2, retries) / 4 + Math.random(), maxDelaySec) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetries(url, options, retries + 1);
+    } else {
+      throw new Error(`Max retries exceeded. error: ${err}`);
+    }
+  }
+}
+
+async function createPeerConnection(offer, iceServers) {
+  peerConnection = new RTCPeerConnection({ iceServers });
+
+  peerConnection.addEventListener('icecandidate', (event) => {
+    if (event.candidate) {
+      fetch(`${DID_API.url}/talks/streams/${streamId}/ice`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${DID_API.key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          candidate: event.candidate.candidate,
+          sdpMid: event.candidate.sdpMid,
+          sdpMLineIndex: event.candidate.sdpMLineIndex,
+          session_id: sessionId,
+        }),
+      });
+    }
+  });
+
+  peerConnection.addEventListener('track', (event) => {
+    streamVideoElement.srcObject = event.streams[0];
+  });
+
+  await peerConnection.setRemoteDescription(offer);
+  const sessionClientAnswer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(sessionClientAnswer);
+
+  return sessionClientAnswer;
+}
+
+window.onload = async () => {
+  const res = await fetch('/api/env');
+  const data = await res.json();
+  DID_API.key = data.DID_API_KEY;
+};
+
