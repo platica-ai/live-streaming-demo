@@ -2,7 +2,7 @@
 
 let DID_API = {
   key: null,
-  url: '/api/proxy-did',
+  url: '/api', // ✅ Updated to match new route
   service: 'talks',
 };
 
@@ -10,14 +10,12 @@ window.DID_API = DID_API;
 window.streamId = null;
 window.sessionId = null;
 
-
 let peerConnection;
 let pcDataChannel;
 let streamId;
 let sessionId;
 let sessionClientAnswer;
 
-// ✅ Expose streamId and sessionId globally
 window.streamId = null;
 window.sessionId = null;
 
@@ -42,7 +40,7 @@ const streamEventLabel = document.getElementById('stream-event-label');
 
 const presenterInputByService = {
   talks: {
-    source_url: '/luna_idle.mp4',
+    source_url: 'https://tnbsunhhihibxaghyjnf.supabase.co/storage/v1/object/public/avatars/LUNA_DELGADO_PROFILE.jpeg',
   },
 };
 
@@ -55,7 +53,7 @@ connectButton.onclick = async () => {
   stopAllStreams();
   closePC();
 
-  const sessionResponse = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams`, {
+  const sessionResponse = await fetchWithRetries(`${DID_API.url}/stream`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${DID_API.key}`,
@@ -68,7 +66,6 @@ connectButton.onclick = async () => {
   streamId = newStreamId;
   sessionId = newSessionId;
 
-  // ⬇️ Assign globally
   window.streamId = streamId;
   window.sessionId = sessionId;
 
@@ -81,7 +78,7 @@ connectButton.onclick = async () => {
     return;
   }
 
-  await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
+  await fetch(`${DID_API.url}/talks/streams/${streamId}/sdp`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${DID_API.key}`,
@@ -92,365 +89,4 @@ connectButton.onclick = async () => {
       session_id: sessionId,
     }),
   });
-};
-
-const startButton = document.getElementById('start-button');
-startButton.onclick = async () => {
-  // connectionState not supported in firefox
-  if (
-    (peerConnection?.signalingState === 'stable' || peerConnection?.iceConnectionState === 'connected') &&
-    isStreamReady
-  ) {
-    const playResponse = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams/${streamId}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${DID_API.key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        script: {
-          // Input based on the audio file
-          // type: 'audio',
-          // audio_url: 'https://d-id-public-bucket.s3.us-west-2.amazonaws.com/webrtc.mp3',
-
-          // Input based on the text
-          type: 'text',
-          provider: {
-            type: 'microsoft',
-            voice_id: 'en-US-AndrewNeural'
-          },
-          input: `Scale up your video production with a digital twin, who can say whatever you want in any language you choose. Train an agent on your content and enable 24/7 personal engagement with your community. <break time=\"1500ms"/>`,
-          ssml: true,
-          // Please note that the SSML notation is different with ElevenLabs voices. Refer to this documentation - https://docs.d-id.com/reference/tts-elevenlabs
-        },
-        ...(DID_API.service === 'clips' && {
-          background: {
-            color: '#FFFFFF',
-          },
-        }),
-        config: {
-          stitch: true,
-        },
-        session_id: sessionId,
-      }),
-    });
-  }
-};
-
-const destroyButton = document.getElementById('destroy-button');
-destroyButton.onclick = async () => {
-  await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Basic ${DID_API.key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ session_id: sessionId }),
-  });
-
-  stopAllStreams();
-  closePC();
-};
-
-function onIceGatheringStateChange() {
-  iceGatheringStatusLabel.innerText = peerConnection.iceGatheringState;
-  iceGatheringStatusLabel.className = 'iceGatheringState-' + peerConnection.iceGatheringState;
-}
-function onIceCandidate(event) {
-  console.log('onIceCandidate', event);
-  if (event.candidate) {
-    const { candidate, sdpMid, sdpMLineIndex } = event.candidate;
-
-    fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/ice`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${DID_API.key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        candidate,
-        sdpMid,
-        sdpMLineIndex,
-        session_id: sessionId,
-      }),
-    });
-  } else {
-    // For the initial 2 sec idle stream at the beginning of the connection, we utilize a null ice candidate.
-    fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/ice`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${DID_API.key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        session_id: sessionId,
-      }),
-    });
-  }
-}
-function onIceConnectionStateChange() {
-  iceStatusLabel.innerText = peerConnection.iceConnectionState;
-  iceStatusLabel.className = 'iceConnectionState-' + peerConnection.iceConnectionState;
-  if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'closed') {
-    stopAllStreams();
-    closePC();
-  }
-}
-function onConnectionStateChange() {
-  // not supported in firefox
-  peerStatusLabel.innerText = peerConnection.connectionState;
-  peerStatusLabel.className = 'peerConnectionState-' + peerConnection.connectionState;
-  if (peerConnection.connectionState === 'connected') {
-    playIdleVideo();
-    /**
-     * A fallback mechanism: if the 'stream/ready' event isn't received within 5 seconds after asking for stream warmup,
-     * it updates the UI to indicate that the system is ready to start streaming data.
-     */
-    setTimeout(() => {
-      if (!isStreamReady) {
-        console.log('forcing stream/ready');
-        isStreamReady = true;
-        streamEventLabel.innerText = 'ready';
-        streamEventLabel.className = 'streamEvent-ready';
-      }
-    }, 5000);
-  }
-}
-function onSignalingStateChange() {
-  signalingStatusLabel.innerText = peerConnection.signalingState;
-  signalingStatusLabel.className = 'signalingState-' + peerConnection.signalingState;
-}
-
-function onVideoStatusChange(videoIsPlaying, stream) {
-  let status;
-
-  if (videoIsPlaying) {
-    status = 'streaming';
-    streamVideoOpacity = isStreamReady ? 1 : 0;
-    setStreamVideoElement(stream);
-  } else {
-    status = 'empty';
-    streamVideoOpacity = 0;
-  }
-
-  streamVideoElement.style.opacity = streamVideoOpacity;
-  idleVideoElement.style.opacity = 1 - streamVideoOpacity;
-
-  streamingStatusLabel.innerText = status;
-  streamingStatusLabel.className = 'streamingState-' + status;
-}
-
-function onTrack(event) {
-  /**
-   * The following code is designed to provide information about wether currently there is data
-   * that's being streamed - It does so by periodically looking for changes in total stream data size
-   *
-   * This information in our case is used in order to show idle video while no video is streaming.
-   * To create this idle video use the POST https://api.d-id.com/talks (or clips) endpoint with a silent audio file or a text script with only ssml breaks
-   * https://docs.aws.amazon.com/polly/latest/dg/supportedtags.html#break-tag
-   * for seamless results use `config.fluent: true` and provide the same configuration as the streaming video
-   */
-
-  if (!event.track) return;
-
-  statsIntervalId = setInterval(async () => {
-    const stats = await peerConnection.getStats(event.track);
-    stats.forEach((report) => {
-      if (report.type === 'inbound-rtp' && report.kind === 'video') {
-        const videoStatusChanged = videoIsPlaying !== report.bytesReceived > lastBytesReceived;
-
-        if (videoStatusChanged) {
-          videoIsPlaying = report.bytesReceived > lastBytesReceived;
-          onVideoStatusChange(videoIsPlaying, event.streams[0]);
-        }
-        lastBytesReceived = report.bytesReceived;
-      }
-    });
-  }, 500);
-}
-
-function onStreamEvent(message) {
-  /**
-   * This function handles stream events received on the data channel.
-   * The 'stream/ready' event received on the data channel signals the end of the 2sec idle streaming.
-   * Upon receiving the 'ready' event, we can display the streamed video if one is available on the stream channel.
-   * Until the 'ready' event is received, we hide any streamed video.
-   * Additionally, this function processes events for stream start, completion, and errors. Other data events are disregarded.
-   */
-
-  if (pcDataChannel.readyState === 'open') {
-    let status;
-    const [event, _] = message.data.split(':');
-
-    switch (event) {
-      case 'stream/started':
-        status = 'started';
-        break;
-      case 'stream/done':
-        status = 'done';
-        break;
-      case 'stream/ready':
-        status = 'ready';
-        break;
-      case 'stream/error':
-        status = 'error';
-        break;
-      default:
-        status = 'dont-care';
-        break;
-    }
-
-    // Set stream ready after a short delay, adjusting for potential timing differences between data and stream channels
-    if (status === 'ready') {
-      setTimeout(() => {
-        console.log('stream/ready');
-        isStreamReady = true;
-        streamEventLabel.innerText = 'ready';
-        streamEventLabel.className = 'streamEvent-ready';
-      }, 1000);
-    } else {
-      console.log(event);
-      streamEventLabel.innerText = status === 'dont-care' ? event : status;
-      streamEventLabel.className = 'streamEvent-' + status;
-    }
-  }
-}
-
-async function createPeerConnection(offer, iceServers) {
-  if (!peerConnection) {
-    peerConnection = new RTCPeerConnection({ iceServers });
-    pcDataChannel = peerConnection.createDataChannel('JanusDataChannel');
-    peerConnection.addEventListener('icegatheringstatechange', onIceGatheringStateChange, true);
-    peerConnection.addEventListener('icecandidate', onIceCandidate, true);
-    peerConnection.addEventListener('iceconnectionstatechange', onIceConnectionStateChange, true);
-    peerConnection.addEventListener('connectionstatechange', onConnectionStateChange, true);
-    peerConnection.addEventListener('signalingstatechange', onSignalingStateChange, true);
-    peerConnection.addEventListener('track', onTrack, true);
-    pcDataChannel.addEventListener('message', onStreamEvent, true);
-  }
-
-  await peerConnection.setRemoteDescription(offer);
-  console.log('set remote sdp OK');
-
-  const sessionClientAnswer = await peerConnection.createAnswer();
-  console.log('create local sdp OK');
-
-  await peerConnection.setLocalDescription(sessionClientAnswer);
-  console.log('set local sdp OK');
-
-  return sessionClientAnswer;
-}
-
-function setStreamVideoElement(stream) {
-  if (!stream) return;
-
-  streamVideoElement.srcObject = stream;
-  streamVideoElement.loop = false;
-  streamVideoElement.mute = !isStreamReady;
-
-  // safari hotfix
-  if (streamVideoElement.paused) {
-    streamVideoElement
-      .play()
-      .then((_) => { })
-      .catch((e) => { });
-  }
-}
-
-function playIdleVideo() {
-  const idleVideo = document.getElementById('idle-video-element');
-  const streamVideo = document.getElementById('stream-video-element');
-
-  idleVideo.style.opacity = 1;
-  streamVideo.style.opacity = 0;
-
-  idleVideo.srcObject = undefined;
-  idleVideo.src = '/luna_idle.mp4'; // ✅ Correct file path
-  idleVideo.loop = true;
-  idleVideo.muted = true;
-  idleVideo.autoplay = true;
-  idleVideo.playsInline = true;
-  idleVideo.volume = 0; // Prevent audio from being picked up by microphone
-
-
-  idleVideo
-    .play()
-    .then(() => console.log('Idle video playing.'))
-    .catch((e) => console.error('Failed to play idle video:', e));
-}
-
-
-function stopAllStreams() {
-  if (streamVideoElement.srcObject) {
-    console.log('stopping video streams');
-    streamVideoElement.srcObject.getTracks().forEach((track) => track.stop());
-    streamVideoElement.srcObject = null;
-    streamVideoOpacity = 0;
-  }
-}
-
-function closePC(pc = peerConnection) {
-  if (!pc) return;
-  console.log('stopping peer connection');
-  pc.close();
-  pc.removeEventListener('icegatheringstatechange', onIceGatheringStateChange, true);
-  pc.removeEventListener('icecandidate', onIceCandidate, true);
-  pc.removeEventListener('iceconnectionstatechange', onIceConnectionStateChange, true);
-  pc.removeEventListener('connectionstatechange', onConnectionStateChange, true);
-  pc.removeEventListener('signalingstatechange', onSignalingStateChange, true);
-  pc.removeEventListener('track', onTrack, true);
-  pc.removeEventListener('onmessage', onStreamEvent, true);
-
-  clearInterval(statsIntervalId);
-  isStreamReady = !stream_warmup;
-  streamVideoOpacity = 0;
-  iceGatheringStatusLabel.innerText = '';
-  signalingStatusLabel.innerText = '';
-  iceStatusLabel.innerText = '';
-  peerStatusLabel.innerText = '';
-  streamEventLabel.innerText = '';
-  console.log('stopped peer connection');
-  if (pc === peerConnection) {
-    peerConnection = null;
-  }
-}
-
-const maxRetryCount = 3;
-const maxDelaySec = 4;
-
-async function fetchWithRetries(url, options, retries = 1) {
-  try {
-    return await fetch(url, options);
-  } catch (err) {
-    if (retries <= maxRetryCount) {
-      const delay = Math.min(Math.pow(2, retries) / 4 + Math.random(), maxDelaySec) * 1000;
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-
-      console.log(`Request failed, retrying ${retries}/${maxRetryCount}. Error ${err}`);
-      return fetchWithRetries(url, options, retries + 1);
-    } else {
-      throw new Error(`Max retries exceeded. error: ${err}`);
-    }
-  }
-}
-
-async function waitForKeys() {
-  const res = await fetch('/api/env');
-  const data = await res.json();
-  DID_API.key = data.DID_API_KEY;
-
-  if (!DID_API.key || DID_API.key.includes('DID_API_KEY')) {
-    throw new Error('Missing or invalid DID_API_KEY');
-  }
-}
-
-window.onload = async () => {
-  try {
-    await waitForKeys();
-    playIdleVideo();
-    console.log("DID_API.key loaded:", DID_API.key);
-  } catch (err) {
-    alert(err.message);
-  }
 };
