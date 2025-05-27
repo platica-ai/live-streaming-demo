@@ -3,6 +3,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  console.log("🔍 Incoming body:", req.body); // ⬅️ Add this
+
   const D_ID_KEY = process.env.DID_API_KEY;
 
   try {
