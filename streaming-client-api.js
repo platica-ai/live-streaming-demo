@@ -2,7 +2,7 @@
 
 let DID_API = {
   key: null,
-  url: '/api', // ✅ Updated to match new route
+  url: '/api',
   service: 'talks',
 };
 
@@ -90,3 +90,12 @@ connectButton.onclick = async () => {
     }),
   });
 };
+
+function stopAllStreams() {
+  if (streamVideoElement.srcObject) {
+    console.log('stopping video streams');
+    streamVideoElement.srcObject.getTracks().forEach((track) => track.stop());
+    streamVideoElement.srcObject = null;
+    streamVideoOpacity = 0;
+  }
+}
