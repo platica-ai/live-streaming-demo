@@ -30,3 +30,4 @@ server.listen(port, () =>
   console.log(
     `Server started on port localhost:${port}\nhttp://localhost:${port}\nhttp://localhost:${port}/agents\nhttp://localhost:${port}/ws-streaming`
   )
+);
