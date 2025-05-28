@@ -37,7 +37,6 @@ export default async function handler(req, res) {
     });
 
     const result = await proxyRes.text();
-
     res.status(proxyRes.status).send(result);
   } catch (error) {
     console.error('Proxy error:', error);
