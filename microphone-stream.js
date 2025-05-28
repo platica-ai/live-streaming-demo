@@ -19,7 +19,7 @@ async function hasUserSpoken(stream) {
       analyser.getByteFrequencyData(dataArray);
       const maxVolume = Math.max(...dataArray);
 
-      if (maxVolume > 15) {
+      if (maxVolume > 25) {
         clearInterval(checkInterval);
         resolve(true);
         audioContext.close();
@@ -78,23 +78,24 @@ async function startMicrophoneStream() {
       const result = await response.json();
       console.log('📝 Transcription:', result.text);
 
-      const hallucinatedPhrases = [
-        'subtítulos realizados por la comunidad de amara.org',
-        'subscribe to my channel',
-        'thanks for watching',
-        'visit amara.org',
-      ];
+    const hallucinatedPhrases = [
+  'subtítulos realizados por la comunidad de amara.org',
+  'subscribe to my channel',
+  'thanks for watching',
+  'visit amara.org',
+  'no, no, no', // Add this line to filter repeated "no"
+  'uh', 'um', // Common filler noises
+];
 
-      const cleanedText = result.text.toLowerCase().trim();
+const cleanedText = result.text.toLowerCase().trim();
 
-      if (hallucinatedPhrases.some((phrase) => cleanedText.includes(phrase))) {
-        console.warn('🚫 Detected hallucinated subtitle. Skipping:', cleanedText);
-        return;
-      }
-
-      if (!cleanedText) {
-        throw new Error('Empty transcription. Skipping.');
-      }
+if (
+  hallucinatedPhrases.some((phrase) => cleanedText.includes(phrase)) || 
+  cleanedText.split(' ').length <= 1 // Ignore single-word transcriptions
+) {
+  console.warn('🚫 Detected hallucinated subtitle. Skipping:', cleanedText);
+  return;
+}
 
       // 💬 Step 2: Send to GPT
       const studentLevel = document.getElementById('level').value;
