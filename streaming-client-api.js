@@ -2,8 +2,8 @@
 
 let DID_API = {
   key: null,
-  url: '/api/proxy', // ✅ Updated to use the consolidated proxy route
-  service: 'stream', // ✅ Adjusted service name to match proxy expectations
+  url: '/api/proxy-did', // ✅ Correct proxy path for D-ID
+  service: 'talks',      // ✅ D-ID service endpoint
 };
 
 window.DID_API = DID_API;
@@ -18,7 +18,7 @@ const idleVideoElement = document.getElementById('idle-video-element');
 const streamVideoElement = document.getElementById('stream-video-element');
 
 const presenterInputByService = {
-  stream: {
+  talks: {
     source_url: 'https://tnbsunhhihibxaghyjnf.supabase.co/storage/v1/object/public/avatars/LUNA_DELGADO_PROFILE.jpeg',
   },
 };
@@ -45,7 +45,7 @@ async function createPeerConnection(offer, iceServers) {
 
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      fetch(`${DID_API.url}/stream/${streamId}/ice`, {
+      fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/ice`, {
         method: 'POST',
         headers: {
           Authorization: `Basic ${DID_API.key}`,
@@ -90,7 +90,7 @@ document.getElementById('connect-button').onclick = async () => {
   stopAllStreams();
   closePC();
 
-  const sessionResponse = await fetchWithRetries(`${DID_API.url}/stream`, {
+  const sessionResponse = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${DID_API.key}`,
@@ -108,7 +108,7 @@ document.getElementById('connect-button').onclick = async () => {
 
   const sessionClientAnswer = await createPeerConnection(data.offer, data.ice_servers);
 
-  await fetch(`${DID_API.url}/stream/${streamId}/sdp`, {
+  await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${DID_API.key}`,
