@@ -2,8 +2,8 @@
 
 let DID_API = {
   key: null,
-  url: '/api',
-  service: 'talks',
+  url: '/api/proxy', // ✅ Updated to use the consolidated proxy route
+  service: 'stream', // ✅ Adjusted service name to match proxy expectations
 };
 
 window.DID_API = DID_API;
@@ -18,7 +18,7 @@ const idleVideoElement = document.getElementById('idle-video-element');
 const streamVideoElement = document.getElementById('stream-video-element');
 
 const presenterInputByService = {
-  talks: {
+  stream: {
     source_url: 'https://tnbsunhhihibxaghyjnf.supabase.co/storage/v1/object/public/avatars/LUNA_DELGADO_PROFILE.jpeg',
   },
 };
@@ -45,7 +45,7 @@ async function createPeerConnection(offer, iceServers) {
 
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      fetch(`${DID_API.url}/talks/streams/${streamId}/ice`, {
+      fetch(`${DID_API.url}/stream/${streamId}/ice`, {
         method: 'POST',
         headers: {
           Authorization: `Basic ${DID_API.key}`,
@@ -108,7 +108,7 @@ document.getElementById('connect-button').onclick = async () => {
 
   const sessionClientAnswer = await createPeerConnection(data.offer, data.ice_servers);
 
-  await fetch(`${DID_API.url}/talks/streams/${streamId}/sdp`, {
+  await fetch(`${DID_API.url}/stream/${streamId}/sdp`, {
     method: 'POST',
     headers: {
       Authorization: `Basic ${DID_API.key}`,
@@ -124,5 +124,7 @@ window.onload = async () => {
   DID_API.key = data.DID_API_KEY;
 
   idleVideoElement.src = 'luna_idle.mp4';
-  idleVideoElement.play();
+  idleVideoElement.loop = true;
+  idleVideoElement.muted = true;
+  idleVideoElement.play().catch(console.error);
 };
