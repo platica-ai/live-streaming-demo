@@ -1,101 +1,52 @@
-const fs = require('fs');
-const path = require('path');
-const { IncomingForm } = require('formidable');
-const FormData = require('form-data');
-const axios = require('axios');
+import formidable from 'formidable';
+import fs from 'fs';
 
-// ✅ Force Vercel to bundle busboy, which formidable relies on
-require('busboy');
-console.log('✔ Busboy required:', typeof require('busboy'));
-
-exports.config = {
+export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-let transcriptLog = [];
-
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST allowed' });
+    return res.status(405).send({ error: 'Only POST method allowed' });
   }
 
-  const form = new IncomingForm({ keepExtensions: true });
+  const form = new formidable.IncomingForm();
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error('❌ Form parse error:', err);
-      return res.status(500).json({ error: 'Form parse error' });
+      return res.status(500).json({ error: 'Error parsing file upload' });
     }
 
-    const fileArray = files.audio;
-    const file = Array.isArray(fileArray) ? fileArray[0] : fileArray;
+    const audioFile = files.audio[0]; // Adjust if your formidable version differs
+    const audioBlob = fs.createReadStream(audioFile.filepath);
 
-    if (!file || !file.filepath) {
-      return res.status(400).json({ error: 'Invalid file object, no path found.' });
-    }
-
-    const tempFilePath = path.join('/tmp', `${Date.now()}-${file.originalFilename}`);
-    try {
-      fs.copyFileSync(file.filepath, tempFilePath);
-      console.log('🧪 Saved debug file at:', tempFilePath);
-    } catch (copyErr) {
-      console.error('❌ Failed to save debug file:', copyErr);
-    }
-
-    // Read raw buffer for debugging
-    let audioBase64 = '';
-    try {
-      const audioBuffer = fs.readFileSync(tempFilePath);
-      audioBase64 = audioBuffer.toString('base64');
-      console.log('📦 Audio file converted to base64');
-    } catch (readErr) {
-      console.error('❌ Failed to read debug file for base64:', readErr);
-    }
-
-    // Transcribe with OpenAI Whisper
-    const formData = new FormData();
-    formData.append('file', fs.createReadStream(tempFilePath), {
-      filename: file.originalFilename || 'audio.webm',
-      contentType: 'audio/webm',
-    });
-    formData.append('model', 'whisper-1');
-    formData.append('language', 'es');
-    formData.append('temperature', '0');
+    const whisperForm = new FormData();
+    whisperForm.append('file', audioBlob, 'audio.webm');
+    whisperForm.append('model', 'whisper-1');
+    whisperForm.append('language', 'es'); // explicitly set language to Spanish
+    whisperForm.append('prompt', 'Transcribe only clear spoken Spanish phrases, ignore background noise.');
 
     try {
-     const response = await axios.post(
-  'https://api.openai.com/v1/audio/transcriptions?condition_on_previous_text=false',
-  formData,
-  {
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      ...formData.getHeaders(),
-    },
-  }
-);
-
-
-      const data = response.data;
-      console.log('🔵 OpenAI response:', data);
-
-      const timestamp = new Date().toISOString();
-      transcriptLog.push({ text: data.text, timestamp });
-
-      return res.status(200).json({
-        text: data.text,
-        audioBase64,
-        mimeType: file.mimetype,
-        timestamp,
+      const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: whisperForm,
       });
 
-    } catch (e) {
-      console.error('❌ OpenAI error:', e.response?.data || e.message);
-      return res.status(500).json({
-        error: 'OpenAI error',
-        details: e.response?.data || e.message,
-      });
+      if (!whisperRes.ok) {
+        const errorText = await whisperRes.text();
+        throw new Error(`Whisper API failed: ${errorText}`);
+      }
+
+      const whisperData = await whisperRes.json();
+      res.status(200).json({ text: whisperData.text });
+    } catch (error) {
+      console.error('Whisper API Error:', error);
+      res.status(500).json({ error: 'Transcription failed', details: error.message });
     }
   });
-};
+}
