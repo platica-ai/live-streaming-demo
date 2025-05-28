@@ -12,14 +12,6 @@ const app = express();
 app.use(cors({ origin: 'http://localhost:3000' }));
 app.use('/', express.static(__dirname));
 
-// expose environment variables for the front-end
-app.get('/api/env', function (req, res) {
-  res.json({
-    DID_API_KEY: process.env.DID_API_KEY,
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-  });
-});
-
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html');
 });
@@ -38,4 +30,3 @@ server.listen(port, () =>
   console.log(
     `Server started on port localhost:${port}\nhttp://localhost:${port}\nhttp://localhost:${port}/agents\nhttp://localhost:${port}/ws-streaming`
   )
-);
