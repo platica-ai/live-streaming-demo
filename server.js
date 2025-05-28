@@ -18,14 +18,6 @@ app.prepare().then(() => {
     res.send('✅ D-ID backend is running on Render');
   });
 
-  // Endpoint to expose API keys
-  server.get('/api/env', (req, res) => {
-    res.json({
-      DID_API_KEY: process.env.DID_API_KEY,
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-    });
-  });
-
   // Let Next.js handle everything else
   server.all('*', (req, res) => {
     return handle(req, res);
