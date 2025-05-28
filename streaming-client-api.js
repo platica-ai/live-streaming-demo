@@ -48,7 +48,7 @@ async function createPeerConnection(offer, iceServers) {
   return answer;
 }
 
-document.getElementById('connect-button').onclick = async () => {
+export async function connect() {
   streamVideoElement.srcObject?.getTracks().forEach((t) => t.stop());
   peerConnection?.close();
 
@@ -71,7 +71,7 @@ document.getElementById('connect-button').onclick = async () => {
     headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ answer, session_id: sessionId }),
   });
-};
+}
 
 window.onload = async () => {
   const res = await fetch('/api/env');
