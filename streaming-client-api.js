@@ -20,14 +20,18 @@ const presenterInputByService = {
   },
 };
 
+// Robust peer connection creation
 async function createPeerConnection(offer, iceServers) {
   peerConnection = new RTCPeerConnection({ iceServers });
 
   peerConnection.onicecandidate = async (event) => {
     if (event.candidate) {
-      await fetch(`${DID_API.url}/talks/streams/${streamId}/ice`, {
+      await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/ice`, {
         method: 'POST',
-        headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
+        headers: {
+          Authorization: `Basic ${DID_API.key}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           candidate: event.candidate.candidate,
           sdpMid: event.candidate.sdpMid,
@@ -40,45 +44,83 @@ async function createPeerConnection(offer, iceServers) {
 
   peerConnection.ontrack = (event) => {
     streamVideoElement.srcObject = event.streams[0];
+    streamVideoElement.play().catch(console.error);
   };
 
-  await peerConnection.setRemoteDescription(offer);
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
   return answer;
 }
 
+// Connect function triggered by button click
 export async function connect() {
-  streamVideoElement.srcObject?.getTracks().forEach((t) => t.stop());
-  peerConnection?.close();
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
 
-  const res = await fetch(`${DID_API.url}/talks/streams`, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...presenterInputByService[DID_API.service], stream_warmup: true }),
-  });
+  if (streamVideoElement.srcObject) {
+    streamVideoElement.srcObject.getTracks().forEach((track) => track.stop());
+    streamVideoElement.srcObject = null;
+  }
 
-  const data = await res.json();
-  streamId = data.id;
-  sessionId = data.session_id;
-  window.streamId = streamId;
-  window.sessionId = sessionId;
+  try {
+    const res = await fetch(`${DID_API.url}/${DID_API.service}/streams`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${DID_API.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...presenterInputByService[DID_API.service],
+        stream_warmup: true,
+      }),
+    });
 
-  const answer = await createPeerConnection(data.offer, data.ice_servers);
+    if (!res.ok) {
+      throw new Error(`API call failed: ${res.status}`);
+    }
 
-  await fetch(`${DID_API.url}/talks/streams/${streamId}/sdp`, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ answer, session_id: sessionId }),
-  });
+    const data = await res.json();
+    streamId = data.id;
+    sessionId = data.session_id;
+    window.streamId = streamId;
+    window.sessionId = sessionId;
+
+    const answer = await createPeerConnection(data.offer, data.ice_servers);
+
+    const sdpResponse = await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${DID_API.key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ answer, session_id: sessionId }),
+    });
+
+    if (!sdpResponse.ok) {
+      throw new Error(`SDP call failed: ${sdpResponse.status}`);
+    }
+  } catch (err) {
+    console.error('Error during connect:', err);
+  }
 }
 
+// Load API key securely and set idle video
 window.onload = async () => {
-  const res = await fetch('/api/env');
-  const data = await res.json();
-  DID_API.key = data.DID_API_KEY;
-  idleVideoElement.src = '/luna_idle.mp4';
-  idleVideoElement.loop = true;
-  idleVideoElement.muted = true;
-  idleVideoElement.play();
+  try {
+    const res = await fetch('/api/env');
+    const data = await res.json();
+    DID_API.key = data.DID_API_KEY;
+
+    idleVideoElement.src = '/luna_idle.mp4';
+    idleVideoElement.loop = true;
+    idleVideoElement.muted = true;
+    idleVideoElement.play().catch((error) => {
+      console.error('Idle video playback failed:', error);
+    });
+  } catch (err) {
+    console.error('Error loading environment variables:', err);
+  }
 };
