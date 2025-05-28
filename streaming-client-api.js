@@ -40,7 +40,6 @@ async function createPeerConnection(offer, iceServers) {
 
   peerConnection.ontrack = (event) => {
     streamVideoElement.srcObject = event.streams[0];
-    streamVideoElement.play();
   };
 
   await peerConnection.setRemoteDescription(offer);
