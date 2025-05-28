@@ -2,18 +2,15 @@
 
 let DID_API = {
   key: null,
-  url: '/api/proxy-did', // ✅ Correct proxy path for D-ID
-  service: 'talks',      // ✅ D-ID service endpoint
+  url: '/api/proxy-did',
+  service: 'talks',
 };
 
 window.DID_API = DID_API;
 window.streamId = null;
 window.sessionId = null;
 
-let peerConnection;
-let streamId;
-let sessionId;
-
+let peerConnection, streamId, sessionId;
 const idleVideoElement = document.getElementById('idle-video-element');
 const streamVideoElement = document.getElementById('stream-video-element');
 
@@ -23,34 +20,14 @@ const presenterInputByService = {
   },
 };
 
-async function fetchWithRetries(url, options, retries = 1) {
-  const maxRetryCount = 3;
-  const maxDelaySec = 4;
-
-  try {
-    return await fetch(url, options);
-  } catch (err) {
-    if (retries <= maxRetryCount) {
-      const delay = Math.min(Math.pow(2, retries), maxDelaySec) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchWithRetries(url, options, retries + 1);
-    } else {
-      throw new Error(`Max retries exceeded. error: ${err}`);
-    }
-  }
-}
-
 async function createPeerConnection(offer, iceServers) {
   peerConnection = new RTCPeerConnection({ iceServers });
 
-  peerConnection.onicecandidate = (event) => {
+  peerConnection.onicecandidate = async (event) => {
     if (event.candidate) {
-      fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/ice`, {
+      await fetch(`${DID_API.url}/talks/streams/${streamId}/ice`, {
         method: 'POST',
-        headers: {
-          Authorization: `Basic ${DID_API.key}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           candidate: event.candidate.candidate,
           sdpMid: event.candidate.sdpMid,
@@ -67,54 +44,33 @@ async function createPeerConnection(offer, iceServers) {
   };
 
   await peerConnection.setRemoteDescription(offer);
-  const sessionClientAnswer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(sessionClientAnswer);
-
-  return sessionClientAnswer;
-}
-
-function stopAllStreams() {
-  if (streamVideoElement.srcObject) {
-    streamVideoElement.srcObject.getTracks().forEach((track) => track.stop());
-    streamVideoElement.srcObject = null;
-  }
-}
-
-function closePC() {
-  if (!peerConnection) return;
-  peerConnection.close();
-  peerConnection = null;
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  return answer;
 }
 
 document.getElementById('connect-button').onclick = async () => {
-  stopAllStreams();
-  closePC();
+  streamVideoElement.srcObject?.getTracks().forEach((t) => t.stop());
+  peerConnection?.close();
 
-  const sessionResponse = await fetchWithRetries(`${DID_API.url}/${DID_API.service}/streams`, {
+  const res = await fetch(`${DID_API.url}/talks/streams`, {
     method: 'POST',
-    headers: {
-      Authorization: `Basic ${DID_API.key}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...presenterInputByService[DID_API.service], stream_warmup: true }),
   });
 
-  const data = await sessionResponse.json();
+  const data = await res.json();
   streamId = data.id;
   sessionId = data.session_id;
-
   window.streamId = streamId;
   window.sessionId = sessionId;
 
-  const sessionClientAnswer = await createPeerConnection(data.offer, data.ice_servers);
+  const answer = await createPeerConnection(data.offer, data.ice_servers);
 
-  await fetch(`${DID_API.url}/${DID_API.service}/streams/${streamId}/sdp`, {
+  await fetch(`${DID_API.url}/talks/streams/${streamId}/sdp`, {
     method: 'POST',
-    headers: {
-      Authorization: `Basic ${DID_API.key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ answer: sessionClientAnswer, session_id: sessionId }),
+    headers: { Authorization: `Basic ${DID_API.key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answer, session_id: sessionId }),
   });
 };
 
@@ -122,9 +78,8 @@ window.onload = async () => {
   const res = await fetch('/api/env');
   const data = await res.json();
   DID_API.key = data.DID_API_KEY;
-
-  idleVideoElement.src = 'luna_idle.mp4';
+  idleVideoElement.src = '/luna_idle.mp4';
   idleVideoElement.loop = true;
   idleVideoElement.muted = true;
-  idleVideoElement.play().catch(console.error);
+  idleVideoElement.play();
 };
