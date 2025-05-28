@@ -1,5 +1,9 @@
 const express = require('express');
 const next = require('next');
+const loadApiKey = require('./loadApiKey');
+
+// Load DID API key from api.json if not provided in environment
+loadApiKey();
 
 const port = process.env.PORT || 3000;
 const dev = process.env.NODE_ENV !== 'production';
