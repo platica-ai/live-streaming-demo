@@ -14,8 +14,8 @@
     "node-fetch": "^3.3.2"
   },
   "scripts": {
-    "dev": "node app.js",
-    "start": "node server.js",
+    "dev": "next dev",
+    "start": "next start",
     "build": "next build"
   }
 }
