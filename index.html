@@ -225,8 +225,8 @@
   
  const startBtn = document.getElementById('start-button');
  startBtn.addEventListener('click', async () => {
-    if (!window.streamId || !window.sessionId) {
-      await connect();
+    // Always establish a fresh connection to obtain a new streamId and sessionId
+    await connect();
     }
 
     if (window.streamId && window.sessionId) {
