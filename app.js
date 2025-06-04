@@ -10,7 +10,8 @@ loadApiKey();
 const port = 3000;
 
 const app = express();
-app.use(cors({ origin: 'http://localhost:3000' }));
+// Allow requests from any origin
+app.use(cors());
 app.use('/', express.static(__dirname));
 app.use(express.json());
 
@@ -58,6 +59,9 @@ const server = http.createServer(app);
 
 server.listen(port, () =>
   console.log(
-    `Server started on port localhost:${port}\nhttp://localhost:${port}\nhttp://localhost:${port}/agents\nhttp://localhost:${port}/ws-streaming`
+     `Server started on port ${port}\n` +
+      `http://<host>:${port}\n` +
+      `http://<host>:${port}/agents\n` +
+      `http://<host>:${port}/ws-streaming`
   )
 );
