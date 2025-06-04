@@ -24,4 +24,3 @@ export default function loadApiKey() {
   return undefined;
 }
 
-module.exports = loadApiKey;
