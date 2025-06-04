@@ -2,6 +2,9 @@
 import formidable from 'formidable';
 import fs from 'fs';
 
+// Store transcriptions so they can be retrieved via api/transcript.js
+export const transcriptLog = [];
+
 export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
@@ -11,17 +14,22 @@ export default async function handler(req, res) {
 
   try {
     const form = new formidable.IncomingForm();
-    const [fields, files] = await form.parse(req);
+       const { files } = await form.parse(req);
 
-    if (!files.audio || !files.audio[0]) {
+   // Formidable may return the file object or an array depending on configuration
+    const file = Array.isArray(files.audio) ? files.audio[0] : files.audio;
+    if (!file || !file.filepath) {
       throw new Error('No audio file provided.');
     }
 
-    const audioFile = files.audio[0];
-    const audioData = fs.readFileSync(audioFile.filepath);
+ const audioData = await fs.promises.readFile(file.filepath);
 
     const formData = new FormData();
-    formData.append('file', new Blob([audioData]), 'audio.webm');
+     formData.append(
+      'file',
+      new Blob([audioData], { type: file.mimetype || 'audio/webm' }),
+      file.originalFilename || 'audio.webm'
+    );
     formData.append('model', 'whisper-1');
     formData.append('language', 'es');
     formData.append('prompt', 'Transcribe only clear spoken Spanish phrases, ignore background noise.');
@@ -38,10 +46,13 @@ export default async function handler(req, res) {
     }
 
     const whisperResult = await whisperResponse.json();
-    res.status(200).json({ text: whisperResult.text });
+
+    transcriptLog.push({ text: whisperResult.text, timestamp: new Date().toISOString() });
+
+    return res.status(200).json({ text: whisperResult.text });
 
   } catch (err) {
     console.error('❌ Transcription Error:', err);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
