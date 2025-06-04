@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   const { filename } = req.query;
 
   if (!filename || !filename.endsWith('.webm')) {
