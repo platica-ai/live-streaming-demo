@@ -1,6 +1,6 @@
-const express = require('express');
-const next = require('next');
-const loadApiKey = require('./loadApiKey');
+import express from 'express';
+import next from 'next';
+import loadApiKey from './loadApiKey.js';
 
 // Load DID API key from api.json if not provided in environment
 loadApiKey();
