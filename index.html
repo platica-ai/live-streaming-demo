@@ -227,7 +227,6 @@
  startBtn.addEventListener('click', async () => {
     // Always establish a fresh connection to obtain a new streamId and sessionId
     await connect();
-    }
 
     if (window.streamId && window.sessionId) {
       startMicrophoneStream();
