@@ -11,6 +11,23 @@ window.streamId = null;
 window.sessionId = null;
 
 let peerConnection, streamId, sessionId;
+
+function resetConnection() {
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+
+  if (streamVideoElement.srcObject) {
+    streamVideoElement.srcObject.getTracks().forEach((t) => t.stop());
+    streamVideoElement.srcObject = null;
+  }
+
+  streamId = null;
+  sessionId = null;
+  window.streamId = null;
+  window.sessionId = null;
+}
 const idleVideoElement = document.getElementById('idle-video-element');
 const streamVideoElement = document.getElementById('stream-video-element');
 
@@ -55,15 +72,7 @@ async function createPeerConnection(offer, iceServers) {
 
 // Connect function triggered by button click
 export async function connect() {
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
-  }
-
-  if (streamVideoElement.srcObject) {
-    streamVideoElement.srcObject.getTracks().forEach((track) => track.stop());
-    streamVideoElement.srcObject = null;
-  }
+ resetConnection();
 
   try {
     const res = await fetch(`${DID_API.url}/${DID_API.service}/streams`, {
@@ -124,3 +133,6 @@ window.onload = async () => {
     console.error('Error loading environment variables:', err);
   }
 };
+
+// Expose connect for non-module scripts
+window.connect = connect;
