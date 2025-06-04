@@ -1,8 +1,12 @@
-const express = require('express');
-const http = require('http');
-const cors = require('cors');
-const loadApiKey = require('./loadApiKey');
-const fetch = require('node-fetch');
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+import loadApiKey from './loadApiKey.js';
+import fetch from 'node-fetch';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Load DID API key from api.json if not provided in environment
 loadApiKey();
