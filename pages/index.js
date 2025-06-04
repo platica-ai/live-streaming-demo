@@ -5,11 +5,13 @@ export default function Home() {
   useEffect(() => {
     const script1 = document.createElement('script');
     script1.src = '/streaming-client-api.js';
+        script1.type = 'module';
     script1.async = true;
     document.body.appendChild(script1);
 
     const script2 = document.createElement('script');
     script2.src = '/microphone-stream.js';
+        script2.type = 'module';
     script2.async = true;
     document.body.appendChild(script2);
   }, []);
